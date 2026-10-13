@@ -16,6 +16,10 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
   assumptions, account data the user shows is observed). KB error fixed: two lines in
   measurement/tracking-attribution.md said target changes reset learning (contradicting
   PLT-BID-011).
+- Re-run of the 4 weakest cases after the fixes: 10/13 critical lines (was 6/12); EV-04 now
+  passes, EV-01 up from 0/3 to 2/3. Still missing: some second-order caveats (EV-01 "how to"
+  queries can be emergencies, EV-11 value-based bidding). Added: forecasts in business results,
+  one line about saved items. Stopped iterating here to avoid tuning to self-written rubrics.
 
 ### Supabase ready, eval runner
 - Supabase project (Frankfurt, Postgres 17) now has the full AllFix schema, migrations 001-005,
