@@ -68,7 +68,13 @@ python -m allfix serve            start the app
 python -m allfix migrate          create or update tables
 python -m allfix load-knowledge   (re)load the knowledge/ folder into the database
 python -m allfix ads-login --country US   sign in to Google Ads (through the PIA check)
+python -m allfix check-accounts   run today's account checks in the running app
 ```
+
+`scripts\schedule.ps1` schedules `check-accounts` every morning at 07:30. The check is plain
+comparisons (settings and conversion actions changed since yesterday, spend and conversions against
+a 28-day baseline, impression share, new costly search terms), so it uses no Claude usage. Results
+appear in Stage 07, and the strategist sees them in its project state.
 
 Edit files in `knowledge/` and run `load-knowledge` (or restart) to update what the strategist knows.
 

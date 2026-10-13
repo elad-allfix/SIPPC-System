@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Item, Project, Stage } from "../types";
 import Connectivity from "./Connectivity";
+import Ledger from "./Ledger";
+import Rounds from "./Rounds";
 import { Button, ENTRY_PATH_TITLE, KIND_TITLE, LabelBadge, Markdown, hostOf } from "./ui";
 
 interface Props {
@@ -130,10 +132,19 @@ export default function StagePanel(p: Props) {
         {p.items.length > 0 && <Grouped items={p.items} {...actions} />}
       </div>
     );
+  } else if (s.n === 6) {
+    body = (
+      <div className="space-y-5">
+        <Ledger items={p.items} onAsk={p.onAsk} />
+        {p.items.length === 0 ? <Empty>Nothing saved here yet. Decisions, forecasts and experiments land here.</Empty>
+          : <Grouped items={p.items} {...actions} />}
+      </div>
+    );
   } else if (s.n === 7) {
     const counts = pr.stage_counts ?? {};
     body = (
       <div className="space-y-2">
+        <Rounds projectId={pr.id} onAsk={p.onAsk} />
         {p.stages.filter((x) => x.n !== 7).map((x) => {
           const c = counts[String(x.n)] ?? {};
           const total = Object.values(c).reduce((a, b) => a + b, 0);

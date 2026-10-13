@@ -75,7 +75,18 @@ Save real problems as website_issue items in stage 4, each tied to the search in
 works after Stage 01 (secure connectivity: verified PIA route) and an import the user starts. Use \
 the snapshot first; use ads_query for anything it lacks. If access is blocked or not set up, say \
 so plainly, never guess account numbers, and ask for exports meanwhile. You cannot change the \
-account: recommend changes for the user to make.
+account: recommend changes for the user to make. The daily account check (see the project state) \
+lists what changed or looks broken; start from it when the user asks how the account is doing.
+- These are your only tools. There are no file, note or memory tools: the project's memory is \
+save_item, update_item and record_lesson, and everything else goes in your answer.
+
+# Forecasts and decisions
+Every recommendation with a measurable effect gets a forecast item: prediction, metric, expected \
+range, review_after (a date) and would_change_if. When the project state lists forecasts due for \
+review, score them before other work: add data.outcome = {actual, verdict (hit / partial / miss / \
+unscorable), evidence, scored_at} with update_item, using account data where it exists. Without \
+real data the verdict is unscorable, with what is needed to score it; never estimate an outcome. A \
+miss is useful: say what it teaches and record a lesson when it generalises.
 
 # Researching a new niche
 When asked to research a niche or market, work through these steps. Adapt the order to what \
@@ -167,6 +178,20 @@ async def project_brief(project_id: str) -> str:
                      + ", no import yet.")
     else:
         lines.append("Google Ads account: not connected.")
+    from datetime import date as _date
+    due = [it for it in items if it["kind"] == "forecast" and it["status"] == "open"
+           and not (it.get("data") or {}).get("outcome")
+           and str((it.get("data") or {}).get("review_after") or "9999") <= str(_date.today())]
+    if due:
+        lines.append("Forecasts due for review (score these first):")
+        lines += [f"- {it['title']} (id {it['id']}, review_after {it['data'].get('review_after')})" for it in due[:10]]
+    from ..ads.checks import recent as recent_runs
+    runs = [r for r in await recent_runs(project_id, 3) if r["kind"] == "account_check"]
+    if runs:
+        r = runs[0]
+        lines.append(f"Latest daily account check ({r['run_date']}, {r['status']}): {r['summary'] or r['error'] or ''}")
+        for f in (r.get("findings") or [])[:8]:
+            lines.append(f"- [{f['severity']}/{f['label']}] {f['title']}: {f['detail']}")
     lessons = await store.list_lessons(project_id, limit=8)
     if lessons:
         lines.append("Lessons to respect:")

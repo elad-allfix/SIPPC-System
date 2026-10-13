@@ -1,4 +1,4 @@
-import type { Connectivity, ConnectionProfile, Conversation, Health, Item, Project, Stage, Turn, Mode, Verification } from "./types";
+import type { Connectivity, ConnectionProfile, Conversation, Health, Item, Project, Stage, Turn, Mode, Run, Verification } from "./types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -38,6 +38,9 @@ export const api = {
     req<ConnectionProfile>(`/projects/${projectId}/connectivity`, { method: "PUT", body: JSON.stringify(body) }),
   verifyRoute: (projectId: string) => req<Verification>(`/projects/${projectId}/connectivity/verify`, { method: "POST" }),
   importAds: (projectId: string, days = 90) => req<any>(`/projects/${projectId}/ads/import?days=${days}`, { method: "POST" }),
+  runs: (projectId: string) => req<Run[]>(`/projects/${projectId}/runs`),
+  accountCheck: (projectId: string, force = false) =>
+    req<any>(`/projects/${projectId}/checks/account${force ? "?force=true" : ""}`, { method: "POST" }),
   knowledgeSearch: (q: string) => req<{ entries: any[]; documents: any[] }>(`/knowledge/search?q=${encodeURIComponent(q)}&limit=20`),
   knowledgeDocuments: () => req<any[]>("/knowledge/documents"),
   knowledgeRead: (id: string) => req<any>(`/knowledge/${encodeURIComponent(id)}`),

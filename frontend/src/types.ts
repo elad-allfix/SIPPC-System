@@ -117,3 +117,17 @@ export interface Connectivity {
   ads_api_version: string;
   snapshot: AdsSnapshot | null;
 }
+
+export interface RunFinding { check: string; severity: "high" | "medium" | "low"; title: string; detail: string; label: string }
+
+export interface Run {
+  id: string;
+  kind: string;
+  run_date: string;
+  status: "running" | "done" | "failed" | "skipped";
+  attention: boolean;
+  summary: string;
+  error: string | null;
+  findings: RunFinding[] | null;
+  metrics: Record<string, any> | null;
+}

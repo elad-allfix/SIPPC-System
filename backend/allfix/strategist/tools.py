@@ -121,7 +121,7 @@ CLIENT_TOOLS: list[dict] = [
                        "intelligence, 5 strategy, 6 learning (decisions, forecasts, experiments). Use data for "
                        "structure: intent_cluster {situation, example_queries, searcher_wants, value, competition}; "
                        "competitor {domain, angles, offers, proof, landing_pages}; decision {decision, reasoning, "
-                       "alternatives}; forecast {prediction, metric, expected_range, review_after, would_change_if}; "
+                       "alternatives}; forecast {prediction, metric, expected_range, review_after (YYYY-MM-DD), would_change_if}; "
                        "experiment {hypothesis, design, success_metric, minimum_volume}.",
         "input_schema": {
             "type": "object",
@@ -141,7 +141,8 @@ CLIENT_TOOLS: list[dict] = [
     {
         "name": "update_item",
         "description": "Update a saved item: change status (confirmed, refuted, done, dropped), label or "
-                       "confidence, append a note, add sources, or supersede it with a newer item id.",
+                       "confidence, append a note, merge data (e.g. a forecast's outcome), add sources, or "
+                       "supersede it with a newer item id.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -150,6 +151,8 @@ CLIENT_TOOLS: list[dict] = [
                 "label": {"type": "string", "enum": LABEL_ENUM},
                 "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
                 "append_note": {"type": "string"},
+                "data": {"type": "object", "description": "Fields merged into the item's data, e.g. "
+                         "{\"outcome\": {...}} when scoring a forecast."},
                 "sources": _SOURCES,
                 "superseded_by": {"type": "string"},
             },

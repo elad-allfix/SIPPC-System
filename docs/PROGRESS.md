@@ -4,6 +4,20 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 
 ## 2026-10-13
 
+### Phase 6 (lean) and research run 3
+- Fable reviewed the Phase 6 plan first and cut it: no unattended model rounds (they would spend
+  Elad's interactive Claude usage and could write to project memory unseen), no scheduled market
+  sweep until manual ones prove useful, no lessons export yet.
+- Built: `ads/checks.py` daily account check (deterministic, once per project per day, verified
+  diffs vs the previous check, baseline checks that skip young accounts and need an expected 4+
+  conversions before flagging zero), `/api/rounds/account-check` (local only), `check-accounts`
+  CLI, `scripts/schedule.ps1`, Stage 07 card, forecast ledger (brief lists due forecasts; Stage 06
+  counts), `update_item` can merge data. 7 new tests.
+- Run 3 (emergency locksmith, Tel Aviv, Hebrew): 38 steps, 12 items, no tool errors. The agent
+  tried a Write tool (refused) because the parent Claude Code session's memory settings leaked
+  into it through environment variables; the strategist now gets those variables blanked, and the
+  prompt says it has no file tools.
+
 ### Stage 01 and read-only Google Ads (Phase 5)
 - Guard (`connectivity/guard.py`): PIA must report Connected (checked on every request, full check
   cached 5 min, a `piactl monitor` thread blocks on a drop); two of three IP-echo services must agree

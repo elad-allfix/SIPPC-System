@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from .. import store
+from .. import db, store
 from ..knowledge import search as kb
 from ..strategist.models import spec_for
 
@@ -259,6 +259,53 @@ async def import_ads(project_id: str, days: int = 90) -> dict:
     except AdsApiError as e:
         raise HTTPException(status_code=502, detail=str(e))
     return result
+
+
+# ---------- phase 6: rounds ----------
+
+async def _account_check(project_id: str, force: bool) -> dict:
+    from ..ads import checks
+    from ..ads.client import AdsApiError, AdsClient, AdsNotConfigured
+    from ..connectivity import ConnectivityBlocked, get_guard, profiles
+    profile = await _profile(project_id)
+    try:
+        async with AdsClient(profile) as client:
+            return await checks.run(project_id, client, force=force)
+    except AdsNotConfigured as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ConnectivityBlocked as e:
+        await profiles.record_last(get_guard(), profile)
+        raise HTTPException(status_code=423, detail=f"Blocked by Stage 01: {e}")
+    except AdsApiError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.post("/projects/{project_id}/checks/account")
+async def account_check(project_id: str, force: bool = False) -> dict:
+    return await _account_check(project_id, force)
+
+
+@router.post("/rounds/account-check")
+async def account_check_all(request: Request) -> dict:
+    """Daily scheduled check for every project with a Google Ads customer id. Local callers only."""
+    if request.client and request.client.host not in ("127.0.0.1", "::1", "localhost", "testclient"):
+        raise HTTPException(status_code=403, detail="scheduled rounds run from this machine only")
+    rows = await db.fetch_all("select project_id from connection_profiles where ads_customer_id is not null")
+    results = []
+    for r in rows:
+        pid = str(r["project_id"])
+        try:
+            res = await _account_check(pid, force=False)
+            results.append({"project_id": pid, "status": res["status"], "summary": res.get("summary") or res.get("reason")})
+        except HTTPException as e:
+            results.append({"project_id": pid, "status": "failed", "summary": e.detail})
+    return {"projects": len(rows), "results": results}
+
+
+@router.get("/projects/{project_id}/runs")
+async def list_runs(project_id: str, limit: int = 10) -> list[dict]:
+    from ..ads import checks
+    return await checks.recent(project_id, min(limit, 50))
 
 
 # ---------- knowledge ----------

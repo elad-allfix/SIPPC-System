@@ -44,8 +44,20 @@ SAVE_ALLOWANCE = 10
 # Environment overrides for the agent process. An empty ANTHROPIC_API_KEY makes Claude
 # Code ignore any key in the environment, so usage can't silently move to API billing.
 # The session ids only exist when AllFix itself runs inside a Claude Code session.
-AGENT_ENV = {"ANTHROPIC_API_KEY": "", "CLAUDE_CODE_SESSION_ID": "", "CLAUDE_CODE_REMOTE_SESSION_ID": "",
-             "CLAUDE_CODE_CHILD_SESSION": "", "CLAUDE_CODE_PROJECTS_SESSION": ""}
+# When AllFix itself was started from inside a Claude Code session (a terminal or Remote Control),
+# that session's settings would leak into the strategist: its memory folders, CLAUDE.md folders,
+# messaging, skills and session id. The strategist gets none of them.
+INHERITED_SESSION_VARS = (
+    "CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_REMOTE_SESSION_ID", "CLAUDE_CODE_CHILD_SESSION",
+    "CLAUDE_CODE_PROJECTS_SESSION", "CLAUDE_ADDITIONAL_DIRECTORIES", "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD",
+    "CLAUDE_COWORK_MEMORY_PATH_OVERRIDE", "CLAUDE_MEMORY_STORES", "CLAUDE_CODE_MESSAGING_SOCKET",
+    "CLAUDE_CODE_MESSAGING_TOKEN", "CLAUDE_CODE_SKILL_PROPOSALS", "CLAUDE_CODE_SYNC_PLUGINS", "CLAUDE_CODE_SYNC_SKILLS",
+    "CLAUDE_CODE_SYNC_SESSION_REFS", "CLAUDE_CODE_COORDINATOR_EXTRA_TOOLS", "CLAUDE_CODE_TERMINAL_MCP_TOOLS",
+    "CLAUDE_AUTO_BACKGROUND_TASKS", "CLAUDE_CODE_SILENT_TURN_REMINDER", "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION",
+    "CLAUDE_CODE_ENABLE_REMOTE_RECAP", "CLAUDE_AFTER_LAST_COMPACT", "CLAUDE_CODE_ARTIFACT_ASSETS", "CLAUDE_PID",
+    "CLAUDE_EFFORT",
+)
+AGENT_ENV = {"ANTHROPIC_API_KEY": "", **{k: "" for k in INHERITED_SESSION_VARS}}
 
 # The last authentication and plan-limit status seen, for /api/health.
 STATUS: dict[str, Any] = {"backend": "subscription", "auth": None, "rate_limit": None, "checked_at": None}
