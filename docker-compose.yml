@@ -1,0 +1,15 @@
+# Optional local Postgres for AllFix. Start with: docker compose up -d
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: allfix
+      POSTGRES_PASSWORD: allfix
+      POSTGRES_DB: allfix
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - allfix-db:/var/lib/postgresql/data
+    restart: unless-stopped
+volumes:
+  allfix-db:

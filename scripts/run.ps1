@@ -1,0 +1,9 @@
+# Start AllFix and open it in the browser.
+$ErrorActionPreference = "Stop"
+$Root = Split-Path -Parent $PSScriptRoot
+Set-Location $Root
+$port = 8000
+$line = Get-Content .env -ErrorAction SilentlyContinue | Where-Object { $_ -match '^PORT=' }
+if ($line) { $port = ($line -replace '^PORT=', '').Trim() }
+Start-Job { Start-Sleep -Seconds 3; Start-Process "http://127.0.0.1:$using:port" } | Out-Null
+& .\.venv\Scripts\python.exe -m allfix serve

@@ -23,7 +23,9 @@ async def open_pool(dsn: str | None = None) -> AsyncConnectionPool:
             dsn or get_settings().database_url,
             min_size=1,
             max_size=10,
-            kwargs={"row_factory": dict_row, "autocommit": True},
+            # prepare_threshold=None: no server-side prepared statements, so the same code
+            # works through connection poolers (e.g. Supabase's transaction pooler).
+            kwargs={"row_factory": dict_row, "autocommit": True, "prepare_threshold": None},
             open=False,
         )
         await _pool.open(wait=True)

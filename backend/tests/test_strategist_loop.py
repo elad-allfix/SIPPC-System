@@ -124,3 +124,19 @@ async def test_refusal_is_reported_and_not_stored(database):
 def test_build_history_keeps_trailing_system():
     rows = [{"role": "user", "content": [1]}, {"role": "system", "content": [2]}]
     assert [m["role"] for m in build_history(rows)] == ["user", "system"]
+
+
+def test_build_history_closes_tool_calls_left_open_by_an_interrupted_turn():
+    rows = [
+        {"role": "user", "content": [{"type": "text", "text": "research"}]},
+        {"role": "system", "content": [{"type": "text", "text": "brief"}]},
+        {"role": "assistant", "content": [{"type": "tool_use", "id": "t9", "name": "search_knowledge", "input": {}}]},
+        {"role": "user", "content": [{"type": "text", "text": "next question"}]},
+        {"role": "system", "content": [{"type": "text", "text": "brief 2"}]},
+    ]
+    h = build_history(rows)
+    _assert_valid_history(h)
+    first = h[3]["content"][0]
+    assert first["type"] == "tool_result" and first["tool_use_id"] == "t9" and first["is_error"]
+    assert h[3]["content"][1]["text"] == "next question"
+    assert build_history(rows) == h  # deterministic, so the cached prefix stays stable

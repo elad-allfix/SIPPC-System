@@ -30,12 +30,27 @@ def build_history(rows: list[dict]) -> list[dict]:
     the history prefix stays stable from turn to turn.
     """
     out: list[dict] = []
+    pending: list[str] = []  # tool_use ids from the last assistant message still waiting for results
     for i, r in enumerate(rows):
         if r["role"] == "system":
             nxt = rows[i + 1]["role"] if i + 1 < len(rows) else None
             if nxt not in (None, "assistant"):
                 continue
-        out.append({"role": r["role"], "content": r["content"]})
+        content = r["content"]
+        if pending and r["role"] != "assistant":
+            # A turn stopped between a tool call and its result (the user pressed Stop or the
+            # connection dropped). Close the call so the history stays valid.
+            answered = {b.get("tool_use_id") for b in content if isinstance(b, dict)} if isinstance(content, list) else set()
+            missing = [{"type": "tool_result", "tool_use_id": t, "content": "interrupted before this ran",
+                        "is_error": True} for t in pending if t not in answered]
+            if missing and r["role"] == "user":
+                content = missing + (content if isinstance(content, list) else [{"type": "text", "text": str(content)}])
+            elif missing:
+                out.append({"role": "user", "content": missing})
+        pending = []
+        if r["role"] == "assistant" and isinstance(content, list):
+            pending = [b["id"] for b in content if isinstance(b, dict) and b.get("type") == "tool_use"]
+        out.append({"role": r["role"], "content": content})
     return out
 
 

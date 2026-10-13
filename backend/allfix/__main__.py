@@ -23,18 +23,27 @@ async def _migrate_and_load(load: bool) -> None:
         await db.close_pool()
 
 
+def _run(coro) -> None:
+    # psycopg's async driver needs a selector event loop; Windows defaults to the proactor loop.
+    if sys.platform == "win32":
+        asyncio.run(coro, loop_factory=asyncio.SelectorEventLoop)
+    else:
+        asyncio.run(coro)
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     cmd = sys.argv[1] if len(sys.argv) > 1 else "serve"
     if cmd == "migrate":
-        asyncio.run(_migrate_and_load(load=False))
+        _run(_migrate_and_load(load=False))
     elif cmd == "load-knowledge":
-        asyncio.run(_migrate_and_load(load=True))
+        _run(_migrate_and_load(load=True))
     elif cmd == "serve":
         import uvicorn
 
         s = get_settings()
-        uvicorn.run("allfix.main:app", host=s.host, port=s.port, log_level="info")
+        print(f"AllFix is running at http://{s.host}:{s.port}")
+        _run(uvicorn.Server(uvicorn.Config("allfix.main:app", host=s.host, port=s.port, log_level="info")).serve())
     else:
         print(__doc__)
         sys.exit(2)

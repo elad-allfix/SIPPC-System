@@ -1,0 +1,73 @@
+import type { Conversation, Item, Project, Stage, Turn, Mode } from "./types";
+
+async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    ...init,
+    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+  });
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const j = await res.json();
+      detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+    } catch { /* not json */ }
+    throw new Error(`${res.status}: ${detail}`);
+  }
+  return res.status === 204 ? (undefined as T) : res.json();
+}
+
+export const api = {
+  health: () => req<{ ok: boolean; knowledge_entries: number; models: Record<string, string> }>("/health"),
+  stages: () => req<Stage[]>("/stages"),
+  projects: () => req<Project[]>("/projects"),
+  project: (id: string) => req<Project>(`/projects/${id}`),
+  createProject: (body: Partial<Project>) => req<Project>("/projects", { method: "POST", body: JSON.stringify(body) }),
+  updateProject: (id: string, body: Partial<Project>) =>
+    req<Project>(`/projects/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  deleteProject: (id: string) => req<void>(`/projects/${id}`, { method: "DELETE" }),
+  items: (projectId: string, stage?: number) =>
+    req<Item[]>(`/projects/${projectId}/items${stage ? `?stage=${stage}` : ""}`),
+  updateItem: (id: string, body: Partial<Item> & { append_note?: string }) =>
+    req<Item>(`/items/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  conversations: (projectId: string) => req<Conversation[]>(`/projects/${projectId}/conversations`),
+  createConversation: (projectId: string, title = "New conversation") =>
+    req<Conversation>(`/projects/${projectId}/conversations`, { method: "POST", body: JSON.stringify({ title }) }),
+  messages: (conversationId: string) => req<Turn[]>(`/conversations/${conversationId}/messages`),
+  knowledgeSearch: (q: string) => req<{ entries: any[]; documents: any[] }>(`/knowledge/search?q=${encodeURIComponent(q)}&limit=20`),
+  knowledgeDocuments: () => req<any[]>("/knowledge/documents"),
+  knowledgeRead: (id: string) => req<any>(`/knowledge/${encodeURIComponent(id)}`),
+};
+
+export type ChatEvent = { type: string; [k: string]: any };
+
+/** POST a chat message and yield server-sent events as they arrive. */
+export async function* chatStream(conversationId: string, message: string, mode: Mode, signal?: AbortSignal): AsyncGenerator<ChatEvent> {
+  const res = await fetch(`/api/conversations/${conversationId}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, mode }),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    yield { type: "error", message: `Request failed (${res.status})` };
+    return;
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let idx: number;
+    while ((idx = buf.indexOf("\n\n")) >= 0) {
+      const chunk = buf.slice(0, idx);
+      buf = buf.slice(idx + 2);
+      const data = chunk.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trimStart()).join("\n");
+      if (!data) continue;
+      try {
+        yield JSON.parse(data);
+      } catch { /* ignore malformed chunk */ }
+    }
+  }
+}

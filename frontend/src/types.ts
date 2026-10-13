@@ -1,0 +1,71 @@
+export type Label = "verified" | "observed" | "estimate" | "assumption" | "hypothesis" | "unknown";
+export type EntryPath = "new_niche" | "website" | "ads_account";
+export type ObjectiveType = "profit" | "leads" | "sales" | "traffic" | "awareness" | "unknown";
+export type Mode = "standard" | "deep";
+
+export interface Stage { n: number; key: string; title: string; summary: string }
+
+export interface Fact { key: string; value: string; label: Label; source: string; updated_at: string }
+
+export interface Project {
+  id: string;
+  name: string;
+  entry_path: EntryPath;
+  objective: string;
+  objective_type: ObjectiveType;
+  country: string | null;
+  region: string | null;
+  language: string | null;
+  website_url: string | null;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  item_count?: number;
+  facts?: Fact[];
+  stage_counts?: Record<string, Record<string, number>>;
+}
+
+export interface Source { url?: string; title?: string; note?: string; kb?: string; checked?: string }
+
+export interface Item {
+  id: string;
+  project_id: string;
+  stage: number;
+  kind: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  label: Label;
+  confidence: "high" | "medium" | "low" | null;
+  sources: Source[];
+  status: string;
+  superseded_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Conversation { id: string; project_id: string; title: string; created_at: string; updated_at: string }
+
+export interface Activity { id: string; name: string; summary: string; ok?: boolean; done?: boolean }
+
+export interface Turn {
+  role: "user" | "assistant";
+  text: string;
+  thinking?: string;
+  activity?: Activity[];
+  sources?: { url: string; title?: string | null }[];
+  model?: string | null;
+  mode?: string | null;
+  error?: string;
+  streaming?: boolean;
+}
+
+export interface KbHit {
+  id: string;
+  title: string;
+  area?: string;
+  claim?: string;
+  evidence_type?: string;
+  confidence?: string;
+  kind?: string;
+}

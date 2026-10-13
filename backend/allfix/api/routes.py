@@ -239,12 +239,16 @@ def render_messages(rows: list[dict]) -> list[dict[str, Any]]:
         for b in content:
             t = b.get("type")
             if t == "text":
+                if current.get("after_tool") and current["text"] and b.get("text"):
+                    current["text"] += "\n\n"
+                current["after_tool"] = False
                 current["text"] += b.get("text", "")
                 for c in b.get("citations") or []:
                     if c.get("url") and c["url"] not in seen:
                         seen.add(c["url"])
                         current["sources"].append({"url": c["url"], "title": c.get("title")})
             elif t in ("tool_use", "server_tool_use"):
+                current["after_tool"] = True
                 inp = b.get("input") or {}
                 tool_names[b["id"]] = b["name"]
                 summary = next((str(inp[k])[:160] for k in ("query", "url", "title", "id") if inp.get(k)), "")
@@ -255,4 +259,6 @@ def render_messages(rows: list[dict]) -> list[dict[str, Any]]:
                     for a in current["activity"]:
                         if a["id"] == b.get("tool_use_id"):
                             a["ok"] = False
+    for t in turns:
+        t.pop("after_tool", None)
     return turns
