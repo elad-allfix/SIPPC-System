@@ -177,6 +177,17 @@ This file covers how a Search campaign is built and constrained: campaign and ad
 
 ---
 
+### PLT-STR-031 · Health and other sensitive categories cannot use advertiser audiences (personalized advertising policy)
+- **Claim:** Google's personalized advertising policy lists sensitive interest categories, including **health**, birth control, clinical trial recruitment, abuse and trauma, and relationship hardships. Advertisers promoting in these categories cannot use advertiser-curated audiences: Customer Match is "not supported", and remarketing and custom segments are limited (custom segments pointing to sensitive pages serve only on Display to non-sensitive audiences or contextually). Predefined Google audiences remain usable because they are "configured without sensitive user signals". Ads may not collect personally identifiable information except through Google-provided formats.
+- **Evidence type:** documented
+- **Confidence:** high (audience limits); medium (how far a given clinic or service counts as "health" is decided per case by Google)
+- **How it works:** The restriction is on targeting people by what Google or the advertiser knows about them, not on showing ads for the service. Keyword-targeted Search ads for health services are governed by the separate healthcare and medicines policy, not by this one.
+- **When it matters / how experts use it:** For clinics, dentists, therapists, pharmacies and similar, plan growth on keyword Search, Maps and contextual reach, not on remarketing lists or uploaded patient lists. Do not build a Customer Match list from patient records. Treat the patient log as sensitive data under local privacy law (for Israel, MKT-ISR-004).
+- **Exceptions and failure modes:** Cosmetic or general wellness offers may or may not fall inside "health"; check the policy's linked health article and expect disapprovals or limited serving if an audience is attached anyway.
+- **Signals in data:** Audience or Customer Match lists marked "limited" or not serving; policy notices on campaigns with remarketing in a health account.
+- **Sources:** [Personalized advertising – Google Advertising Policies Help](https://support.google.com/adspolicy/answer/143465?hl=en) (checked 2026-10-13)
+- **Open questions:** Whether dental implants and clear aligners are treated as "health" or as cosmetic for audience purposes; the linked health article was not opened.
+
 ## D. Networks
 
 ### PLT-STR-016 · Google Search Partners: what it is and how it behaves

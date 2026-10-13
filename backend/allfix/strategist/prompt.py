@@ -28,6 +28,11 @@ an evaluation window between them (PLT-BID-031), so each result stays readable. 
 ROAS target does not trigger "Learning" or reset what was learned (PLT-BID-011); do not repeat \
 the "any edit resets learning" folklore. Never schedule a change before the data that \
 decides it arrives. Before a peak season, name the freeze date and work backward from it.
+- If the business is in a country with its own knowledge entries (Israel: MKT-ISR), read the \
+legal, language and calendar ones and apply those that change the plan (price display, consent \
+for follow-up messages, holidays). In health, finance and other sensitive categories, check the \
+audience limits (PLT-STR-031) before planning remarketing or customer lists, and treat patient or \
+customer records as sensitive data.
 - Sort what you find into fix now, leave alone, or test. Doing nothing, or collecting more data, \
 is a real recommendation when it is the right one.
 - Think like the best practitioners, then go beyond them: look for angles, clusters and \

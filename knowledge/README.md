@@ -11,10 +11,10 @@ Checked: 2026-10-13. Research was done with web sources opened on that date. No 
 | Path | What it holds | Entries |
 |---|---|---|
 | `SCHEMA.md` | entry format and rules (evidence type, confidence, sources, "changed" markers) | |
-| `index.jsonl` | one line per entry: id, title, file, evidence type, confidence, changed flag, claim. Generated from the entry headings; Claude regenerates it after edits | 411 |
+| `index.jsonl` | one line per entry: id, title, file, evidence type, confidence, changed flag, claim. Generated from the entry headings; Claude regenerates it after edits | 412 |
 | `platform/auction-quality.md` | Ad Rank, thresholds, pricing, Quality Score, impression share, AI Overviews placement | 30 |
 | `platform/keywords-matching.md` | match types, precedence, AI Max migration, search terms visibility, negatives, Keyword Planner | 33 |
-| `platform/structure-targeting-budgets.md` | campaign structure, location, language, audiences, partners, budgets and pacing, impression share | 30 |
+| `platform/structure-targeting-budgets.md` | campaign structure, location, language, audiences, partners, budgets and pacing, impression share | 31 |
 | `platform/bidding.md` | strategies, learning, conversion lag, targets vs budgets, simulators, exploration, scaling | 31 |
 | `platform/ads-assets.md` | RSAs, Ad Strength, asset reporting, assets, AI text, policy limits on copy | 33 |
 | `platform/automation.md` | AI Max, Performance Max, recommendations, AI Overviews / AI Mode, control patterns | 35 |
@@ -36,8 +36,8 @@ Checked: 2026-10-13. Research was done with web sources opened on that date. No 
 
 ## Evidence profile (from index.jsonl)
 
-- **Evidence type:** documented 280, practitioner 42, study 40, inference 39, Google statement 8, hypothesis 2.
-- **Confidence:** high 258, medium or medium-high 132, low, low-medium or medium-low 21.
+- **Evidence type:** documented 281, practitioner 42, study 40, inference 39, Google statement 8, hypothesis 2.
+- **Confidence:** high 259, medium or medium-high 132, low, low-medium or medium-low 21.
 - **Recent changes:** 82 entries carry a "(changed YYYY…)" marker.
 
 The base leans toward Google's own documentation because the shared web search budget ran out partway through every area, so practitioner sources are under-represented. `research-gaps.md` lists what is missing.
