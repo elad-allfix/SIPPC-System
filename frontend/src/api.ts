@@ -1,4 +1,4 @@
-import type { Conversation, Health, Item, Project, Stage, Turn, Mode } from "./types";
+import type { Connectivity, ConnectionProfile, Conversation, Health, Item, Project, Stage, Turn, Mode, Verification } from "./types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -33,6 +33,11 @@ export const api = {
   createConversation: (projectId: string, title = "New conversation") =>
     req<Conversation>(`/projects/${projectId}/conversations`, { method: "POST", body: JSON.stringify({ title }) }),
   messages: (conversationId: string) => req<Turn[]>(`/conversations/${conversationId}/messages`),
+  connectivity: (projectId: string) => req<Connectivity>(`/projects/${projectId}/connectivity`),
+  saveConnectivity: (projectId: string, body: Partial<ConnectionProfile>) =>
+    req<ConnectionProfile>(`/projects/${projectId}/connectivity`, { method: "PUT", body: JSON.stringify(body) }),
+  verifyRoute: (projectId: string) => req<Verification>(`/projects/${projectId}/connectivity/verify`, { method: "POST" }),
+  importAds: (projectId: string, days = 90) => req<any>(`/projects/${projectId}/ads/import?days=${days}`, { method: "POST" }),
   knowledgeSearch: (q: string) => req<{ entries: any[]; documents: any[] }>(`/knowledge/search?q=${encodeURIComponent(q)}&limit=20`),
   knowledgeDocuments: () => req<any[]>("/knowledge/documents"),
   knowledgeRead: (id: string) => req<any>(`/knowledge/${encodeURIComponent(id)}`),

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Item, Project, Stage } from "../types";
+import Connectivity from "./Connectivity";
 import { Button, ENTRY_PATH_TITLE, KIND_TITLE, LabelBadge, Markdown, hostOf } from "./ui";
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
   onQuote: (item: Item) => void;
   onStatus: (item: Item, status: string) => void;
   onSelectStage: (n: number) => void;
+  onAsk: (text: string) => void;
 }
 
 function ItemCard({ item, onQuote, onStatus }: { item: Item; onQuote: (i: Item) => void; onStatus: (i: Item, s: string) => void }) {
@@ -93,13 +95,7 @@ export default function StagePanel(p: Props) {
 
   let body: React.ReactNode;
   if (s.n === 1) {
-    body = (
-      <div className="space-y-3 text-sm text-muted">
-        <Empty>Not built yet. This is Phase 5 of the roadmap.</Empty>
-        <p>Before AllFix touches a Google Ads account it will check, every time, that traffic leaves through the expected PIA route and that the browser session runs in the expected Dolphin profile. If the check fails, account access stays closed.</p>
-        <p>Public market research does not need this stage and is never blocked by it.</p>
-      </div>
-    );
+    body = <Connectivity projectId={pr.id} onAsk={p.onAsk} />;
   } else if (s.n === 2) {
     const facts = pr.facts ?? [];
     body = (
@@ -145,7 +141,7 @@ export default function StagePanel(p: Props) {
             <button key={x.n} onClick={() => p.onSelectStage(x.n)} className="block w-full rounded-xl border border-line bg-panel p-3 text-left hover:border-accent">
               <div className="flex justify-between text-sm"><span className="font-medium">{String(x.n).padStart(2, "0")} {x.title}</span><span className="tabular-nums text-muted">{total}</span></div>
               <div className="mt-1 text-xs text-faint">
-                {total === 0 ? (x.n === 1 ? "Phase 5, not built yet" : x.n === 2 ? `${pr.facts?.length ?? 0} facts` : "Nothing yet")
+                {total === 0 ? (x.n === 1 ? "See the stage for route checks" : x.n === 2 ? `${pr.facts?.length ?? 0} facts` : "Nothing yet")
                   : Object.entries(c).map(([k, n]) => `${n} ${(KIND_TITLE[k] ?? k).toLowerCase()}`).join(" · ")}
               </div>
             </button>

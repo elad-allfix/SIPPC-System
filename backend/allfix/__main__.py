@@ -1,4 +1,4 @@
-"""Command line: `python -m allfix [serve|migrate|load-knowledge]`."""
+"""Command line: `python -m allfix [serve|migrate|load-knowledge|ads-login --country US]`."""
 
 from __future__ import annotations
 
@@ -38,6 +38,15 @@ def main() -> None:
         _run(_migrate_and_load(load=False))
     elif cmd == "load-knowledge":
         _run(_migrate_and_load(load=True))
+    elif cmd == "ads-login":
+        from .ads import login
+
+        args = sys.argv[2:]
+        country = args[args.index("--country") + 1] if "--country" in args and len(args) > args.index("--country") + 1 else None
+        if not country:
+            print("usage: python -m allfix ads-login --country US   (the country PIA must exit in)")
+            sys.exit(2)
+        sys.exit(asyncio.run(login.run(country)))
     elif cmd == "serve":
         import uvicorn
 

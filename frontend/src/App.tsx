@@ -203,7 +203,8 @@ export default function App() {
             draft={draft} setDraft={setDraft} onSend={send} onStop={() => abortRef.current?.abort()}
             onNewConversation={newConversation} onSelectConversation={selectConversation} />
           <StagePanel project={project} stage={stages.find((s) => s.n === stage)} stages={stages} items={items}
-            onQuote={quote} onStatus={setStatus} onSelectStage={setStage} />
+            onQuote={quote} onStatus={setStatus} onSelectStage={setStage}
+            onAsk={(text) => { setView("chat"); setDraft(text); }} />
         </>
       ) : <div className="flex-1" />}
       {creating && <NewProject onCreate={createProject} onCancel={() => setCreating(false)} canCancel={projects.length > 0} />}

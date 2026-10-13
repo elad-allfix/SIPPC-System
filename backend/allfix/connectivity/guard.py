@@ -206,7 +206,7 @@ class RouteGuard:
         ips = {e["ip"] for e in good}
         if len(good) < 2:
             checks.append(Check("ip_echo", False, "fewer than two IP-echo services answered: "
-                                + "; ".join(e.get("error", "") for e in echoes if e.get("error"))))
+                                + "; ".join(dict.fromkeys(e["error"] for e in echoes if e.get("error")))))
         else:
             checks.append(Check("ip_echo", len(ips) == 1, f"{len(good)} services saw {sorted(ips)}"))
         public_ip = next(iter(ips)) if len(ips) == 1 else None

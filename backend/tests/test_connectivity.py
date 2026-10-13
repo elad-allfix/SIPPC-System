@@ -246,3 +246,24 @@ def test_api_profile_and_verify():
             assert imp.status_code in (400, 423)      # not configured or blocked; never a request
     finally:
         set_guard(None)
+
+
+def test_ads_login_helpers(tmp_path):
+    from urllib.parse import parse_qs, urlparse
+    from allfix.ads import login
+    verifier, challenge = login.pkce()
+    assert len(verifier) >= 43 and "=" not in challenge
+    q = parse_qs(urlparse(login.auth_url("cid", "http://127.0.0.1:5555", "st", challenge)).query)
+    assert q["scope"] == [login.SCOPE] and q["access_type"] == ["offline"] and q["code_challenge_method"] == ["S256"]
+    env = tmp_path / ".env"
+    env.write_text("DATABASE_URL=x\nADS_REFRESH_TOKEN=old\n# note\n")
+    login.set_env_value(env, "ADS_REFRESH_TOKEN", "new")
+    login.set_env_value(env, "OTHER", "1")
+    assert env.read_text() == "DATABASE_URL=x\nADS_REFRESH_TOKEN=new\n# note\nOTHER=1\n"
+
+
+async def test_ads_login_stops_when_route_fails(monkeypatch, ads_settings, tmp_path, capsys):
+    from allfix.ads import login
+    monkeypatch.setattr(login, "RouteGuard", lambda: make_guard(pia=fake_pia(state="Disconnected")))
+    assert await login.run("US", env_path=tmp_path / ".env") == 3
+    assert "nothing was sent" in capsys.readouterr().out and not (tmp_path / ".env").exists()

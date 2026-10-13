@@ -77,3 +77,43 @@ export interface Health {
   models: Record<string, string>;
   subscription?: { api_key_source: string | null; rate_limit: Record<string, any> | null; checked_at: string | null };
 }
+
+export interface RouteCheck { name: string; ok: boolean | null; detail: string }
+
+export interface Verification {
+  ok: boolean;
+  public_ip: string | null;
+  country: string | null;
+  region: string | null;
+  at: string;
+  checks: RouteCheck[];
+}
+
+export interface ConnectionProfile {
+  id: string;
+  ads_customer_id: string | null;
+  login_customer_id: string | null;
+  required_country: string;
+  required_region: string | null;
+  vpn_profile: string | null;
+  dolphin_profile_id: string | null;
+  last_verified_at: string | null;
+  last_result: Verification | null;
+}
+
+export interface AdsSnapshot {
+  id: string;
+  customer_id: string;
+  taken_at: string;
+  date_range: string;
+  status: "running" | "done" | "failed";
+  error: string | null;
+  summary: Record<string, any>;
+}
+
+export interface Connectivity {
+  profile: ConnectionProfile | null;
+  ads_configured: boolean;
+  ads_api_version: string;
+  snapshot: AdsSnapshot | null;
+}
