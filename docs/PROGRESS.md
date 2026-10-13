@@ -177,3 +177,4 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 - Blind run graded by Fable (/mnt/project-files/allfix-kb/evals/runs/app-run-2026-10-13-new-cases/GRADING.md): EV-12, EV-13, EV-14 PASS; EV-15 PARTIAL. Critical lines 11/12; all 27 cited entry ids checked and supported; arithmetic and dates correct; no traps.
 - EV-15 missed the consent rule for promotional WhatsApp follow-ups and the Sunday-Thursday week in its schedule. The country rule now says such constraints go in the plan itself, not only in saved items.
 - Windows: added "Setup AllFix.cmd" and "Start AllFix.cmd" (double-click); setup.ps1 links a zip-filled folder to GitHub when its repository has no commits. Code copied to Elad's PC folder; setup not run yet.
+- Recheck of EV-15 after the fix: the plan now covers consent and the "פרסומת" label for promotional WhatsApp follow-ups (MKT-ISR-003) and the Sunday-Thursday week and Shabbat (MKT-ISR-010).
