@@ -171,3 +171,4 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 ## 2026-10-13 · Eval set extended; rubrics hidden from the strategist
 - Four new evaluation cases built from runs 5-8 and their reviews: EV-12 local launch (LSA vs Search), EV-13 investor wants traffic (SaaS), EV-14 ROAS up but store revenue flat after PMax, EV-15 Israeli dental clinic in Hebrew. 15 cases in total; `scripts/run_evals.py` picks them up.
 - Found and closed a blind-eval leak: the strategist's read_knowledge could read `evals/cases` (rubrics) by slug. It now reads with include_evals=False; people can still open them in the Knowledge view. New test. 82 passed, 5 skipped.
+- Checked the stored agent transcripts (2,778 entries, including deleted eval projects): the strategist never read an eval document, so earlier eval scores were not contaminated.
