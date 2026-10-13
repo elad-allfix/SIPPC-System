@@ -9,7 +9,8 @@ from __future__ import annotations
 from importlib import resources
 
 from psycopg.rows import dict_row
-from psycopg_pool import AsyncConnectionPool
+from psycopg.conninfo import conninfo_to_dict
+from psycopg_pool import AsyncConnectionPool, PoolTimeout
 
 from .config import get_settings
 
@@ -28,7 +29,15 @@ async def open_pool(dsn: str | None = None) -> AsyncConnectionPool:
             kwargs={"row_factory": dict_row, "autocommit": True, "prepare_threshold": None},
             open=False,
         )
-        await _pool.open(wait=True)
+        try:
+            # Waits (retrying) while the database starts, e.g. Docker right after boot.
+            await _pool.open(wait=True, timeout=60)
+        except PoolTimeout as e:
+            pool, _pool = _pool, None
+            await pool.close()
+            host = conninfo_to_dict(dsn or get_settings().database_url).get("host", "?")
+            raise RuntimeError(f"Could not connect to the database at {host} within 60 seconds. Is Postgres "
+                               "running, and is DATABASE_URL in .env right?") from e
     return _pool
 
 
