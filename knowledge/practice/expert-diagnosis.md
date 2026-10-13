@@ -174,7 +174,7 @@ Evidence note: the search and fetch budget for this research session ran out bef
 - **Evidence type:** practitioner
 - **Confidence:** medium-high
 - **How it works:** Ani's rule of thumb: avoid major changes during a dip of up to about 7 days, and treat roughly ±10% fluctuation as normal. That is a practitioner heuristic; the right band depends on volume, so compute the account's own week-to-week variance. PPCChat participants suggest waiting a day or two before changing anything unless budgets are high. Lawrence Chasse: "If it is not broken, don't fix it"; "Don't change things just to justify your existence." Chris Kostecki: "Decide on strategy periodically, optimize performance regularly, monitor spend daily."
-- **When it matters / how experts use it:** On every alert. Weigh the cost of waiting (spend at risk per day) against the cost of acting on noise (reset learning, lose the ability to attribute what happened).
+- **When it matters / how experts use it:** On every alert. Weigh the cost of waiting (spend at risk per day) against the cost of acting on noise (the bidder recalibrates, and you lose the ability to attribute what happened; MEA-CONV-028).
 - **Exceptions and failure modes:** A fixed ±10% band is too tight for low-volume campaigns (10 conversions per week varies by ±30% from Poisson noise alone) and too loose for very large ones.
 - **Signals in data:** Change within the historical weekly range. Learning status active.
 - **Sources:** [SEL, Ani](https://searchengineland.com/ppc-diagnostics-low-conversions-450710) (checked 2026-10-13); [PPCChat recap](https://www.karooya.com/blog/ppcchat-when-youre-doing-everything-right-performance-still-sucks/) (checked 2026-10-13)
@@ -438,7 +438,7 @@ Evidence note: the search and fetch budget for this research session ran out bef
 - **Reading average CPC or CTR as if the traffic mix were constant.** Mix shifts (new broad terms, partners, devices) move averages with no change in any individual unit (PRC-DIAG-001, 007).
 - **Chasing Quality Score, impression share or absolute-top position as goals.** They are diagnostics or means, not profit (PRC-DIAG-010, 022, 024).
 - **Over-trusting experiment "winners".** The default 80% confidence, multiple metrics, peeking, and learning-period contamination all inflate false positives (PRC-DIAG-018).
-- **Stacking changes.** Several simultaneous edits reset learning and make attribution impossible (PRC-DIAG-020).
+- **Stacking changes.** Several simultaneous edits make the bidder recalibrate on a mix of causes and make attribution impossible (PRC-DIAG-020). Target changes alone do not trigger Learning (PLT-BID-011).
 - **Optimising to form fills in lead gen.** The bidder finds junk efficiently (PRC-DIAG-011).
 - **Year-over-year comparisons across structural changes,** and windows with mismatched weekdays or holidays (PRC-DIAG-014).
 - **Assuming auction insights shows everything.** It excludes search partners, hides competitors below 10% impression share, reveals nothing about bids, and covers only Search and Shopping in PMax (PRC-DIAG-006, 035).

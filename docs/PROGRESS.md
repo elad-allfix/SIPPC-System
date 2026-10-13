@@ -150,3 +150,9 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 - Errors: one citation (PLT-BID-031) attached to an inference; "no customer list" asserted although the user never said; a capped brand Search campaign (which hands brand queries back to PMax); engaged-view and remarketing credit not considered; three bidder-resetting changes a week apart, one scheduled before the data that decides it.
 - Fixes: prompt rules on unstated account facts, on what a citation supports, and on sequencing changes with evaluation windows and a peak-season freeze; playbook D7 gains a step to split conversions by ad event type and new vs returning, plus the uncapped-brand-campaign rule.
 - Rerun (run 7b, /mnt/project-files/allfix-runs/2026-10-13-run7b-coffee-pmax-after-fixes.md): every finding addressed; no narration in the answer. Stopping iteration on this case.
+
+## 2026-10-13 · Evaluation run 3 (regression check after runs 5-7)
+- All 11 cases rerun through the app; Fable graded them blind: 8 PASS, 3 PARTIAL (EV-01, EV-03, EV-04), 0 FAIL, 26/31 critical lines (first app run 23/31). Grading in /mnt/project-files/allfix-kb/evals/runs/app-run-2026-10-13-run3/GRADING.md.
+- Regression found: four answers repeated "changes reset learning". Cause: the new sequencing rule said "changes that reset bidding", and two knowledge lines (expert-diagnosis.md, PRC-DIAG alert weighing and "Stacking changes") still used the folklore. All three corrected to "recalibrate"; the prompt now says target changes do not trigger Learning (PLT-BID-011).
+- EV-04 slipped because the "what we cannot see about competitors" sentence appears only by chance; the competitor rule now asks for it explicitly.
+- Not done on purpose: rubric-specific playbook exceptions (dayparting, "how to fix" queries) that would tune to self-written cases.
