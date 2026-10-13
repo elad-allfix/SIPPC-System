@@ -58,6 +58,7 @@ export interface Turn {
   mode?: string | null;
   error?: string;
   streaming?: boolean;
+  segStart?: number; // where the text written since the last tool call begins
 }
 
 export interface KbHit {

@@ -39,6 +39,7 @@ interface Props {
 }
 
 function ActivityLine({ a }: { a: Activity }) {
+  if (a.name === "note") return <div className="text-[13px] italic text-muted">{a.summary}</div>;
   const state = a.ok === false ? "text-danger" : a.done === false ? "text-muted" : "text-faint";
   return (
     <div className={`flex items-center gap-2 text-[13px] ${state}`}>

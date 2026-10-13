@@ -125,9 +125,13 @@ offers, proof and landing pages. For local services, consider what occupies the 
 ads (Local Services Ads, the map pack, Business Profiles) and therefore which channel can win \
 attention: LSA, Business Profile with booking links, Search text ads, call-focused ads. Check \
 the ad policy for this category in this country. For a local service launch or a choice between \
-channels, read strategic playbook S8 and the entries it names: search hits alone miss steps. Treat lead marketplaces and directories both as \
-competitors and as possible lead sources to compare on cost per lead. Separate what you observed \
-from what you infer.
+channels, read strategic playbook S8 and the entries it names: search hits alone miss steps. In any category, treat \
+marketplaces, directories and review sites that own the results page (Angi, Yelp, Capterra, G2 \
+and the like) both as competitors and as channels to compare on cost per customer. If a cluster \
+targets competitor names, state the trademark rules (PLT-KW-030, PLT-ADS-031): what the ad text \
+may say, and that low relevance makes those clicks cost more. Say which device the buyer uses to \
+act (phones for urgent calls, desktops for most B2B signups), and ask for screenshots on that \
+device. Separate what you observed from what you infer.
 For local and service businesses also cover: other languages spoken in the area (often cheaper, \
 less contested searches), device (calls come from phones; adjust or exclude devices that can't \
 call), and when demand peaks against when the business can answer. If the peak falls outside \
@@ -143,12 +147,15 @@ channel runs from day 1, and use that same spend in the forecast. Keep each bid 
 the affordable CPC from the economics, or label it a loss-tolerant learning test. Include a short \
 measurement block: the conversion definition, how leads from different channels are kept apart \
 and deduplicated, how booked jobs get back to the platform, and the bidding-switch trigger in \
-those terms. Save these as opportunity, experiment and risk items, and a forecast \
+those terms. Write kill criteria \
+by failure type before launch (MKT-NICHE-025), and check that each cluster's budget, at the high \
+CPC scenario, buys enough clicks to reach its kill criterion; merge or drop clusters that cannot. \
+Save these as opportunity, experiment and risk items, and a forecast \
 for each measurable prediction, each with a review_after date.
 7. Open questions and risks: what you could not verify and how to find out.
 If page fetching fails, say so once, stop retrying, and lower the confidence of anything known \
 only from search summaries: such facts are observed at most, never verified, because you did not \
-open the page. In "What I need", ask for the specific pages to paste and for phone screenshots of \
+open the page. In "What I need", ask for the specific pages to paste and for screenshots (on the buyer's device) of \
 the results page for the 3-5 most important searches.
 Save one thing per item: one risk, one question, one competitor (a business; a market-wide \
 pattern is a finding). Keep one value per business fact and use that same value in economics. An \

@@ -361,8 +361,10 @@ def render_messages(rows: list[dict]) -> list[dict[str, Any]]:
         for b in content:
             t = b.get("type")
             if t == "text":
-                if current.get("after_tool") and current["text"] and b.get("text"):
-                    current["text"] += "\n\n"
+                if current.get("after_tool") or "seg_start" not in current:
+                    if current["text"] and b.get("text"):
+                        current["text"] += "\n\n"
+                    current["seg_start"] = len(current["text"])
                 current["after_tool"] = False
                 current["text"] += b.get("text", "")
                 for c in b.get("citations") or []:
@@ -370,6 +372,7 @@ def render_messages(rows: list[dict]) -> list[dict[str, Any]]:
                         seen.add(c["url"])
                         current["sources"].append({"url": c["url"], "title": c.get("title")})
             elif t in ("tool_use", "server_tool_use"):
+                _demote_narration(current)
                 current["after_tool"] = True
                 inp = b.get("input") or {}
                 tool_names[b["id"]] = b["name"]
@@ -383,4 +386,20 @@ def render_messages(rows: list[dict]) -> list[dict[str, Any]]:
                             a["ok"] = False
     for t in turns:
         t.pop("after_tool", None)
+        t.pop("seg_start", None)
     return turns
+
+
+NOTE_MAX = 400  # same limit as the UI (App.tsx)
+
+
+def _demote_narration(turn: dict[str, Any]) -> None:
+    """Short text written just before a tool call is progress narration, not the answer:
+    show it among the tool activity instead."""
+    start = turn.get("seg_start", 0)
+    seg = turn["text"][start:].strip()
+    if not seg or len(seg) > NOTE_MAX:
+        return
+    turn["text"] = turn["text"][:start].rstrip()
+    turn["seg_start"] = len(turn["text"])
+    turn["activity"].append({"id": f"note-{len(turn['activity'])}", "name": "note", "summary": seg, "ok": True})

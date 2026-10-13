@@ -123,7 +123,10 @@ export default function App() {
           case "text": {
             const sep = afterTool; // read now: the updater below runs later, during render
             afterTool = false;
-            patchLast((t) => ({ ...t, text: t.text + (sep && t.text ? "\n\n" : "") + ev.text }));
+            patchLast((t) => {
+              const base = t.text + (sep && t.text ? "\n\n" : "");
+              return { ...t, text: base + ev.text, segStart: sep || t.segStart === undefined ? base.length : t.segStart };
+            });
             break;
           }
           case "thinking":
@@ -131,7 +134,7 @@ export default function App() {
             break;
           case "tool_start":
             afterTool = true;
-            patchLast((t) => ({ ...t, activity: [...(t.activity ?? []).filter((a) => a.id !== ev.id), { id: ev.id, name: ev.name, summary: ev.summary, done: false }] }));
+            patchLast((t0) => { const t = demoteNarration(t0); return { ...t, activity: [...(t.activity ?? []).filter((a) => a.id !== ev.id), { id: ev.id, name: ev.name, summary: ev.summary, done: false }] }; });
             break;
           case "tool_end":
             afterTool = true;
@@ -210,4 +213,15 @@ export default function App() {
       {creating && <NewProject onCreate={createProject} onCancel={() => setCreating(false)} canCancel={projects.length > 0} />}
     </div>
   );
+}
+
+/** A short passage written just before a tool call ("Now saving the plan...") is progress, not the
+ * answer: move it into the activity list so the answer starts with the recommendation. */
+const NOTE_MAX = 400; // same limit as render_messages in api/routes.py
+function demoteNarration(t: Turn): Turn {
+  const start = t.segStart ?? 0;
+  const seg = t.text.slice(start).trim();
+  if (!seg || seg.length > NOTE_MAX) return t;
+  const text = t.text.slice(0, start).trimEnd();
+  return { ...t, text, segStart: text.length, activity: [...(t.activity ?? []), { id: `note-${(t.activity ?? []).length}`, name: "note", summary: seg, done: true, ok: true }] };
 }

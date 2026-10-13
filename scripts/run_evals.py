@@ -64,16 +64,18 @@ def run_case(base: str, cid: str, prompt: str, mode: str, keep: bool, out: Path)
         if not keep:
             c.delete(f"/api/projects/{project['id']}")
     # Text written before a tool call is narration; keep it apart from what follows, as the UI does.
-    parts, after_tool = [], False
+    # Short text written just before a tool call is narration and is dropped, as the UI does.
+    segments, current = [], ""
     for e in events:
         if e["type"] == "tool_start":
-            after_tool = True
+            if current.strip() and len(current.strip()) > 400:
+                segments.append(current.strip())
+            current = ""
         elif e["type"] == "text":
-            if after_tool and parts:
-                parts.append("\n\n")
-            parts.append(e.get("text", ""))
-            after_tool = False
-    answer = "".join(parts)
+            current += e.get("text", "")
+    if current.strip():
+        segments.append(current.strip())
+    answer = "\n\n".join(segments)
     tools = [e.get("name") for e in events if e["type"] == "tool_start"]
     errors = [e for e in events if e["type"] == "error"]
     secs = round(time.time() - started)
