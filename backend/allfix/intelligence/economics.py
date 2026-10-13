@@ -92,7 +92,8 @@ def calculate(inputs: dict, cpc: dict | list | float | None = None) -> dict:
         lo = dict(mids, **{n: ranges[n].low})
         hi = dict(mids, **{n: ranges[n].high})
         swing = _value_per_click(hi) * hi["acquisition_share"] - _value_per_click(lo) * lo["acquisition_share"]
-        sensitivity.append({"input": n, "swing_in_max_cpc": _r(swing)})
+        sensitivity.append({"input": n, "swing_in_max_cpc": _r(swing),
+                            "range_ratio": _r(ranges[n].high / ranges[n].low) if ranges[n].low else None})
     sensitivity.sort(key=lambda s: -abs(s["swing_in_max_cpc"]))
 
     customer_value_mid = mids["value_per_customer"] * mids["contribution_margin"]
@@ -108,7 +109,10 @@ def calculate(inputs: dict, cpc: dict | list | float | None = None) -> dict:
             "high": _r(1 / ranges["contribution_margin"].low) if ranges["contribution_margin"].low else None,
             "note": "1 / contribution margin; valid only when reported conversion value is revenue on the same base",
         },
-        "most_sensitive_inputs": sensitivity,
+        "uncertainty_by_input": sensitivity,
+        "uncertainty_note": ("The formula is a plain product, so an input's swing reflects how wide its assumed "
+                             "range is (range_ratio), not how much the business can move it. Say 'the widest "
+                             "assumption is X; pinning it down narrows the answer most', not 'X matters most'."),
     }
 
     if cpc is not None:

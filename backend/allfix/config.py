@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     model_deep: str = "claude-fable-5-1"
     effort_standard: str = "high"
     effort_deep: str = "high"
-    max_tool_calls_per_turn: int = 40
+    max_tool_calls_per_turn: int = 60
 
     knowledge_dir: Path = REPO_ROOT / "knowledge"
     frontend_dist: Path = REPO_ROOT / "frontend" / "dist"

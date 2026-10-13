@@ -159,7 +159,7 @@ CLIENT_TOOLS: list[dict] = [
     {
         "name": "calculate_economics",
         "description": "Advertising economics with ranges: value per click, maximum affordable CPC, break-even "
-                       "ROAS, and which input moves the answer most. Shares are 0-1 (0.08 = 8%). Optionally pass "
+                       "ROAS, and which assumption is widest (pinning it down narrows the answer most). Shares are 0-1 (0.08 = 8%). Optionally pass "
                        "a CPC (range) to compare against.",
         "input_schema": {
             "type": "object",

@@ -15,7 +15,7 @@ def test_ranges_bound_the_result_and_rank_sensitivity():
                    "value_per_customer": 2000, "contribution_margin": 0.12})
     assert r["value_per_click"]["low"] == pytest.approx(0.05 * 0.10 * 2000 * 0.12)
     assert r["value_per_click"]["high"] == pytest.approx(0.10 * 0.20 * 2000 * 0.12)
-    assert r["most_sensitive_inputs"][0]["input"] in ("conversion_rate", "close_rate")
+    assert r["uncertainty_by_input"][0]["input"] in ("conversion_rate", "close_rate")
     assert r["break_even_roas_on_revenue"]["low"] == pytest.approx(1 / 0.12, rel=1e-3)
 
 
