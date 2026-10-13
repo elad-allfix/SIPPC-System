@@ -186,6 +186,88 @@ One ad group, one RSA with headlines "Trusted Local Plumbers", "Family Owned Sin
 
 ---
 
+## EV-12 · Local service launch: LSA, Search or both
+**Evidence:** synthetic; built from app run 5 and its independent review (2026-10-13).
+
+**Situation.** I run a small plumbing company in Phoenix, Arizona: me plus 3 licensed plumbers, 2 vans. We do drain cleaning, water heater repair and replacement, leak repair, and emergency calls (we answer 6am-10pm, 7 days). We've never advertised online except a Google Business Profile with 41 reviews (4.7 stars). Website: we have one but it's old. Typical tickets: drain clean $150-350, water heater replacement $1,800-3,200, leak repair $250-600. Budget: up to $3,000 for the first month. I want phone calls from people who need a plumber now, not tire-kickers.
+
+**Question.** "Should I do Google Ads, Local Services Ads, or both? Give me a concrete plan for month 1."
+
+**Rubric.**
+1. **(critical)** Splits channels by economics per job type (pay-per-lead for low tickets, Search only where value per click covers realistic CPCs), with the client's figures labelled and margins as assumptions.
+2. **(critical)** Budget is one table that sums to the cap with every channel running from day 1; the forecast uses the same spend; bid caps are at or below the affordable CPC or labelled as a loss-tolerant test.
+3. **(critical)** Gets LSA timing right for the category (plumbers can get pre-badge leads while verification is pending) and recommends the eligibility check.
+4. Makes phone answering the gate: who answers each hour, LSA missed-call charges, hours aligned across GBP, LSA, call assets and ad schedule.
+5. Defines the call conversion for the US (AI-qualified calls or duration), keeps channels apart in a job log, and states the bidding-switch trigger in qualified calls or booked jobs.
+6. Covers the Business Profile (real name, services, hours, policy-safe reviews).
+
+**Traps.** Saying LSA may not start in month 1 for a plumber. A budget that exceeds the cap. Bidding on generic "plumber" terms when the economics say they lose money, without saying so. "24/7" copy.
+
+## EV-13 · Investor wants "more traffic" for a self-serve SaaS
+**Evidence:** synthetic; built from app run 6 and its independent review (2026-10-13).
+
+**Situation.** We're a 6-person startup selling a scheduling tool for physical therapy clinics in the US (plans $89-249/month per clinic, 14-day free trial, no sales team, self-serve signup). Our site has a blog with ~40 articles. We have no conversion tracking set up yet besides Google Analytics pageviews.
+Our investor wants "more traffic" this quarter and we've been given $6,000 for Google Ads over 3 months. Honestly I'm not sure if traffic is the right goal.
+What should we do with Google Ads, and how do we know if it's working?
+
+**Question.** "What should we do with Google Ads, and how do we know if it's working?"
+
+**Rubric.**
+1. **(critical)** Challenges "traffic" as the goal and proposes measurable alternatives (trials, activated trials, paying customers) the investor can be shown, without refusing to report traffic.
+2. **(critical)** No spend before signup tracking works; defines trial, activation and paid conversions and how paid accounts get back to Google (click ID or email, Data Manager route).
+3. **(critical)** Kill criteria by failure type, and each cluster's budget at the high CPC scenario reaches its kill criterion; clusters that cannot are merged or dropped.
+4. States trademark rules when targeting competitor names (keywords allowed, ad text restricted, relevance makes clicks cost more).
+5. Weighs software directories and review sites (Capterra, G2) as competitors and as an alternative channel.
+6. Labels CPCs and rates as estimates or assumptions; says the quarter is too small to prove cost per customer.
+
+**Traps.** Buying cheap clicks (Display, broad, blog promotion) to hit a traffic number. Treating "15-30 conversions" as a platform rule. Competitor trademarks in ad text.
+
+## EV-14 · Google ROAS up, store revenue flat after a move to Performance Max
+**Evidence:** synthetic; built from app run 7 and its independent review (2026-10-13).
+
+**Situation.** We sell premium coffee beans and grinders online in the US (Shopify). Google Ads spend ~$18k/month. In August our agency moved most of the budget from Standard Shopping + Search into one Performance Max campaign (brand included, no negative lists). Since then Google Ads says ROAS went UP, but our Shopify revenue is flat and new customers are down. Here's what I exported (last 30 days vs the 30 days before the switch):
+
+| | Before (Jul) | After (Sep) |
+|---|---|---|
+| Spend | $17,400 | $18,100 |
+| Google Ads conv. value | $61,000 | $79,600 |
+| Google Ads ROAS | 3.5 | 4.4 |
+| Shopify total revenue | $212,000 | $209,000 |
+| Shopify new-customer orders | 1,310 | 1,080 |
+| Branded search clicks (Search campaign) | 9,800 | 1,200 (Search campaign mostly paused) |
+| PMax "search terms" insights top category | n/a | "brand name + coffee" |
+
+Conversion action: Purchase (Shopify app), plus "Add to cart" also set as primary since August.
+
+**Question.** "Was the switch a mistake? What should we do?"
+
+**Rubric.**
+1. **(critical)** Reconciles Google value with Shopify and names the measurement changes (Add to cart as primary, brand moved into PMax) as reasons the ROAS rise is not real, with unknowns (does Add to cart pass a value?) labelled.
+2. **(critical)** Considers alternatives: seasonality (needs last year), other channels, prices or stock, engaged-view and remarketing credit, and asks for the reports that separate them (by conversion action, brand share, ad event type, new vs returning).
+3. **(critical)** Sequences changes one at a time with evaluation windows, never schedules a change before the data that decides it, and names a freeze date before Black Friday.
+4. A brand Search campaign meant to take brand back from PMax is not budget-limited; brand exclusion is weighed, not assumed right.
+5. Judges success on backend new-customer orders and profit, and asks for margin to compute break-even ROAS.
+6. Does not assert account facts the user did not state (customer lists, goals, bid strategy).
+
+**Traps.** "Switch back to Standard Shopping now." Several bidder-resetting changes in one week. Claiming "any change resets learning". Taking Google ROAS at face value.
+
+## EV-15 · Israeli dental clinic (Hebrew)
+**Evidence:** synthetic; built from app run 8 (2026-10-13).
+
+**Situation.** יש לי מרפאת שיניים ברמת גן, שני רופאים ושיננית. אנחנו רוצים יותר מטופלים להשתלות ויישור שיניים שקוף (אינביזליין). השתלה אצלנו עולה 4,500-6,500 ₪, יישור שקוף 12,000-18,000 ₪. התקציב 8,000 ₪ לחודש לגוגל. רוב הפניות מגיעות היום בוואטסאפ. מה לעשות בחודשיים הראשונים? אפשר לכתוב בתשובה באנגלית.
+
+**Question.** "מה לעשות בחודשיים הראשונים?"
+
+**Rubric.**
+1. **(critical)** Applies Israeli rules that change the plan: prices shown to consumers include VAT, medical and dental advertising limits (no superlatives, comparisons or unguaranteed results), consent before promotional WhatsApp or SMS messages.
+2. **(critical)** Applies Google's health audience limits: no remarketing lists or patient-list uploads; growth through keyword Search and Maps.
+3. **(critical)** Makes WhatsApp, the main contact channel, measurable (source tagging, a contact log tied to accepted treatment plans) before judging the test.
+4. Economics per treatment with the close rate as the widest assumption; bid caps and stop rules consistent with the budget.
+5. Respects the Israeli calendar (week, Shabbat, holidays, election day) when scheduling launch and ads.
+6. Writes keywords and ad examples in natural Hebrew.
+
+**Traps.** Prices without VAT in ads. "הכי טוב" or "ללא כאב" claims. Remarketing or Customer Match from patient records. Bulk WhatsApp promotions without consent.
+
 ## What these cases cannot show
 
 - They were written by the same system that will be graded on them, so they test coverage of known situations, not judgement in unknown ones.

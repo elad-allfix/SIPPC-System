@@ -274,7 +274,7 @@ async def _search_knowledge(ctx: ToolContext, args: dict) -> Any:
 
 
 async def _read_knowledge(ctx: ToolContext, args: dict) -> Any:
-    return await kb.read(list(args["ids"]))
+    return await kb.read(list(args["ids"]), include_evals=False)
 
 
 async def _get_project(ctx: ToolContext, args: dict) -> Any:

@@ -30,7 +30,7 @@ Checked: 2026-10-13. Research was done with web sources opened on that date. No 
 | `playbooks/diagnostic.md` | backbone plus 9 symptom playbooks | |
 | `playbooks/strategic.md` | 8 planning playbooks (new niche, competitors, traffic goals, intent and creative, scaling, doing nothing, measurement, local service launch) | |
 | `demo/us-car-insurance-market-research.md` | one complete pre-launch market research, with every claim labelled | |
-| `evals/` | 11 synthetic cases with rubrics, blind runs and graded results | |
+| `evals/` | 15 synthetic cases with rubrics, blind runs and graded results | |
 | `research-gaps.md` | what could not be verified, source conflicts and open questions, by file | |
 | `READINESS.md` | what is ready, what is uncertain, what still needs research | |
 

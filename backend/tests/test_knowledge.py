@@ -37,3 +37,12 @@ async def test_loading_twice_is_idempotent(database):
     await loader.load(get_settings().knowledge_dir)
     n = await db.fetch_one("select count(*) as n from kb_entries")
     assert n["n"] == 412
+
+
+async def test_strategist_cannot_read_eval_rubrics(database):
+    from allfix.config import get_settings
+    from allfix.knowledge import loader
+    await loader.load(get_settings().knowledge_dir)
+    assert (await search.read(["evals/cases"]))[0].get("kind") == "eval"            # people can
+    hidden = await search.read(["evals/cases"], include_evals=False)
+    assert hidden == [{"id": "evals/cases", "error": "not found"}]                  # the strategist cannot

@@ -63,15 +63,17 @@ async def search(query: str, limit: int = 8, area: str | None = None) -> dict:
     return {"entries": entries[:limit], "documents": docs}
 
 
-async def read(ids: list[str]) -> list[dict]:
-    """Full text of entries (by id) or documents (by slug)."""
+async def read(ids: list[str], include_evals: bool = True) -> list[dict]:
+    """Full text of entries (by id) or documents (by slug). The strategist reads with
+    include_evals=False so evaluation rubrics and graded answers stay blind to it."""
     ids = [i.strip() for i in ids if i and i.strip()][:12]
     entries = await db.fetch_all(
         "select id, title, body, evidence_type, confidence, file from kb_entries where id = any(%s)",
         ([i.upper() for i in ids],),
     )
     docs = await db.fetch_all(
-        "select slug as id, title, body, kind from kb_documents where slug = any(%s)", (ids,)
+        "select slug as id, title, body, kind from kb_documents where slug = any(%s) and (%s or kind <> 'eval')",
+        (ids, include_evals),
     )
     found = {r["id"] for r in entries} | {r["id"] for r in docs}
     missing = [{"id": i, "error": "not found"} for i in ids if i not in found and i.upper() not in found]
