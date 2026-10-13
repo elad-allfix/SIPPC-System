@@ -12,6 +12,7 @@ dependencies = [
   "pydantic-settings>=2.4",
   "python-dotenv>=1.0",
   "selectolax>=0.3",
+  "claude-agent-sdk>=0.2.165",
 ]
 
 [project.optional-dependencies]
