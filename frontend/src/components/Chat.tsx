@@ -6,7 +6,7 @@ const TOOL_VERB: Record<string, string> = {
   web_search: "Searching the web", web_fetch: "Reading", search_knowledge: "Searching knowledge",
   read_knowledge: "Reading knowledge", get_project: "Checking the project", update_project: "Updating the project",
   save_item: "Saving", update_item: "Updating", calculate_economics: "Calculating economics",
-  record_lesson: "Recording a lesson",
+  record_lesson: "Recording a lesson", WebSearch: "Searching the web", WebFetch: "Reading",
 };
 
 const STARTERS: Record<string, string[]> = {
