@@ -12,3 +12,12 @@ Each phase ends with something that can actually be used. A phase counts as done
 | 6. Ongoing intelligence | Scheduled rounds (daily account check, weekly market sweep), forecast reviews, lessons feeding back into the knowledge base | A scheduled round runs unattended and leaves a reviewed summary |
 
 Further capabilities are added only when real use shows they are needed.
+
+## Status (2026-10-13)
+
+| Phase | State | What was checked |
+|---|---|---|
+| 1. Foundation | Built and tested | 23 backend tests pass; a fresh clone sets up with `scripts/setup.sh` and serves the app; interface smoke-tested in a browser (create project, chat stream, stage panel, reload keeps data, dark theme, knowledge search). The schema was dry-run on the Supabase database (Postgres 17) and rolled back. `setup.ps1` and `backup.ps1` have not been run on Windows yet. |
+| 2. Working strategist | Built, plumbing tested, not yet run against the real model | Tool loop, persistence, interrupted turns, errors and refusals are tested with a scripted model. The real client passes SDK validation and reaches the API (rejected only for the missing key). Answer quality is unverified until an `ANTHROPIC_API_KEY` is set. |
+| 3. New-niche research | Research procedure written into the strategist prompt; not yet run | Needs the API key, then one real niche researched and judged by Elad. |
+| 4–6 | Not started | |
