@@ -2,7 +2,7 @@
 As of 2026-10-13, after one research pass and one evaluation run.
 
 ## Ready to use
-- **Platform mechanics** (auction and quality, keywords and matching, structure and budgets, bidding, ads and assets, AI Max and PMax, measurement). 394 entries (19 on local channels added 2026-10-13), two thirds backed by opened Google documentation. Dozens of entries record a 2025–2026 change, including:
+- **Platform mechanics** (auction and quality, keywords and matching, structure and budgets, bidding, ads and assets, AI Max and PMax, measurement). 411 entries (19 on local channels and 17 on Israel added 2026-10-13), two thirds backed by opened Google documentation. Dozens of entries record a 2025–2026 change, including:
   - the September 2026 move to AI Max
   - the August 2026 change in how budget-limited target campaigns behave
   - the Data Manager API path for offline import

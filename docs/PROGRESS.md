@@ -157,3 +157,8 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 - EV-04 slipped because the "what we cannot see about competitors" sentence appears only by chance; the competitor rule now asks for it explicitly.
 - Not done on purpose: rubric-specific playbook exceptions (dayparting, "how to fix" queries) that would tune to self-written cases.
 - Recheck of EV-01, EV-04, EV-07 after the fixes (/mnt/project-files/allfix-kb/evals/runs/app-run-2026-10-13-run3-recheck/): no "reset learning" claims left (EV-01 now says a target change does not reset learning, PLT-BID-011); EV-04 states what cannot be seen about competitors.
+
+## 2026-10-13 · Israel knowledge
+- Added `knowledge/market/israel-market.md`: 17 entries (MKT-ISR-001..017) on VAT-inclusive consumer prices (VAT 18% since 2025-01), the anti-spam law for SMS/email/WhatsApp follow-up, Privacy Amendment 13, Google consent rules for Israel, account setup (ILS, time zone, no prepay), Hebrew right-to-left text and keyword forms, Arabic and Russian speakers, the Sunday-Thursday week and Shabbat, the holiday and election calendar, war-time demand, WhatsApp and Waze, Zap and Yad2, Israel-specific Google policies and medical advertising law.
+- Researched by a worker, then fact-checked by Fable ("Fit to load" after in-place fixes: one fine was only a notice of intent, two legal entries relabelled as secondary summaries, a weak GDP source replaced, WhatsApp-asset availability downgraded). Unverified points listed in research-gaps.md.
+- Knowledge base 411 entries. Tests 81 passed, 5 skipped.

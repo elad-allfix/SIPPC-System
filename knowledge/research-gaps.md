@@ -55,3 +55,10 @@ Collected from each research area as it reported (2026-10-13). The search and fe
 - Google Business Profile, Local Services Ads and the local pack: added 2026-10-13 (`market/local-services.md`). Open: LSA lead prices by trade and city, and GBP ranking factors beyond Google's own statement.
 - Lawyer advertising rules (state bar), SAT/AP calendar-type demand timing, solar sales cycles and lead-qualifying fields: absent.
 - Corrected: PLT-ADS-030 (only two Misrepresentation sub-policies are egregious; policy page re-opened 2026-10-13).
+
+## Israel (`market/israel-market.md`, added 2026-10-13)
+- Statute texts not opened (Knesset site blocked): Consumer Protection Law ss. 17B/17D (VAT-inclusive total price) and Communications Law s. 30A (anti-spam). Entries rest on regulator actions and secondary legal summaries.
+- Whether WhatsApp is an "electronic message" under s. 30A (no ruling found); the current criminal fine figure (Kol Zchut only).
+- Privacy Amendment 13 fine levels (one law-firm memo, no statutory figures).
+- Whether WhatsApp message assets actually serve in Israeli accounts (no Google country list).
+- VAT treatment of Google's invoices to Israeli advertisers (reverse-charge claim from a vendor guide only).

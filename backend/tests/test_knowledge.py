@@ -4,7 +4,7 @@ from allfix.knowledge import search
 
 async def test_all_entries_loaded(database):
     n = await db.fetch_one("select count(*) as n from kb_entries")
-    assert n["n"] == 394
+    assert n["n"] == 411
     docs = {d["slug"] for d in await search.list_documents()}
     assert {"playbooks/diagnostic", "playbooks/strategic", "relationships/metric-relationships"} <= docs
 
@@ -36,4 +36,4 @@ async def test_loading_twice_is_idempotent(database):
     from allfix.knowledge import loader
     await loader.load(get_settings().knowledge_dir)
     n = await db.fetch_one("select count(*) as n from kb_entries")
-    assert n["n"] == 394
+    assert n["n"] == 411
