@@ -27,6 +27,8 @@ powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 
 If the `SIPPC System` folder already exists and is empty, run `git clone ... .` inside it instead.
 
+Or, without typing anything: double-click **Setup AllFix.cmd** in the folder, then **Start AllFix.cmd**. If the folder was filled from a zip, setup also links it to GitHub so `git pull` brings updates.
+
 The strategist uses your own Claude subscription through Claude Code's sign-in, so there is no API
 key to set. If you have never signed in on this PC, install Claude Code and run `claude` once to log
 in. Then start AllFix:

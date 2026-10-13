@@ -26,6 +26,25 @@ Need node "Install Node.js 20 or newer: winget install OpenJS.NodeJS.LTS"
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
   Write-Host "Git for Windows is not installed. Claude Code needs it on Windows: winget install Git.Git" -ForegroundColor Yellow
 }
+else {
+  # A folder filled from a zip next to an empty git repository: link it to GitHub so 'git pull'
+  # brings updates. Only when the repository has no commits yet, so local work is never touched.
+  $ErrorActionPreference = "Continue"
+  & git rev-parse --verify HEAD 2>$null | Out-Null
+  $noCommits = ($LASTEXITCODE -ne 0)
+  $origin = (& git remote get-url origin 2>$null)
+  if ((Test-Path ".git") -and $noCommits -and $origin) {
+    Write-Host "Linking this folder to $origin ..." -ForegroundColor Yellow
+    & git fetch origin main
+    if ($LASTEXITCODE -eq 0) {
+      & git reset --hard origin/main
+      & git branch -M main
+      & git branch -u origin/main
+    }
+    else { Write-Host "Could not reach GitHub; continuing with the files already here." -ForegroundColor Yellow }
+  }
+  $ErrorActionPreference = "Stop"
+}
 
 # 2. Python environment and backend
 if (-not (Test-Path ".venv")) { Invoke-Expression "$py -m venv .venv" }
