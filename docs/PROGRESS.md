@@ -4,6 +4,17 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 
 ## 2026-10-13
 
+### Supabase ready, eval runner
+- Supabase project (Frankfurt, Postgres 17) now has the full AllFix schema, migrations 001-005,
+  recorded in schema_migrations so the app treats them as applied. Tables are owned by `postgres`
+  (the role the app connects as, so RLS does not block it); RLS with no policies closes them to
+  Supabase's public API (the advisor lists this as INFO, by design). Empty: the knowledge base
+  loads when the app first starts against it. To use it, put the Session pooler connection string
+  in DATABASE_URL on the PC.
+- `scripts/run_evals.py` runs the 11 evaluation cases through a running AllFix (throwaway project
+  per case, answers to evals-out/), so the real strategist can be graded against the rubrics.
+- Startup waits up to 60 s for the database and explains clearly when it can't connect.
+
 ### Phase 6 (lean) and research run 3
 - Fable reviewed the Phase 6 plan first and cut it: no unattended model rounds (they would spend
   Elad's interactive Claude usage and could write to project memory unseen), no scheduled market

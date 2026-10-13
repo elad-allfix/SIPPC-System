@@ -14,3 +14,4 @@ backups/
 *.log
 *.tsbuildinfo
 .allfix-agent/
+evals-out/
