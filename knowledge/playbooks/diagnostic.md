@@ -120,9 +120,10 @@ Alternatives to separate: market seasonality, new competitor, your own target ch
 
    Practitioner estimates put inflation at 20–40% in audited accounts (PRC-DIAG-012, PRC-DIAG-038). That is a prior, not a constant.
 2. **Compute break-even ROAS** on a margin consistent with the value counted. Include fees and returns.
-3. **Split brand from non-brand**, and for PMax measure the brand share of value vs cost. Judge non-brand on its own (PRC-DIAG-028).
-4. **Question incrementality.** Would these conversions have happened anyway? This needs a holdout or geo test (PRC-DIAG-027, PRC-DIAG-036/037/039).
-5. **Judge scaling on marginal return**, not average return (relationships §4).
+3. **Split brand from non-brand**, and for PMax measure the brand share of value vs cost. Judge non-brand on its own (PRC-DIAG-028). A brand Search campaign meant to take brand queries back from PMax must not be budget-limited, or PMax serves them again (PLT-KW-007/008).
+4. **Split by how the conversion was credited.** Segment PMax and Demand Gen conversions by ad event type (click vs engaged-view or view-through) and by new vs returning customer. Remarketing to existing customers and engaged-view credit from YouTube and Display can raise reported value while backend revenue stays flat (MEA-CONV-005, PLT-AUTO-015). Do this before blaming brand alone, and check whether a gap between platform and backend existed before the change. Check PMax negatives and brand exclusions (PLT-AUTO-017).
+5. **Question incrementality.** Would these conversions have happened anyway? This needs a holdout or geo test (PRC-DIAG-027, PRC-DIAG-036/037/039).
+6. **Judge scaling on marginal return**, not average return (relationships §4).
 
 ## D8 · Spend spike
 1. Is it within the documented limits? Up to 2× daily budget on a given day, and no more than 30.4× in a month. Since 2026, campaigns that switch off whole days in their schedule pace toward the full monthly amount (PLT-STR-020/021, PRC-DIAG-009).
