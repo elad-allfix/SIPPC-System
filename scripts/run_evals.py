@@ -63,7 +63,17 @@ def run_case(base: str, cid: str, prompt: str, mode: str, keep: bool, out: Path)
         items = c.get(f"/api/projects/{project['id']}/items").json()
         if not keep:
             c.delete(f"/api/projects/{project['id']}")
-    answer = "".join(e.get("text", "") for e in events if e["type"] == "text")
+    # Text written before a tool call is narration; keep it apart from what follows, as the UI does.
+    parts, after_tool = [], False
+    for e in events:
+        if e["type"] == "tool_start":
+            after_tool = True
+        elif e["type"] == "text":
+            if after_tool and parts:
+                parts.append("\n\n")
+            parts.append(e.get("text", ""))
+            after_tool = False
+    answer = "".join(parts)
     tools = [e.get("name") for e in events if e["type"] == "tool_start"]
     errors = [e for e in events if e["type"] == "error"]
     secs = round(time.time() - started)
