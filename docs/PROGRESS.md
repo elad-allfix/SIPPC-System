@@ -4,6 +4,19 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 
 ## 2026-10-13
 
+### First eval run of the real app (11 cases, blind Fable grading)
+- All 11 cases ran through the app on the subscription in about 6 minutes, with no errors.
+  Answers and grading: /mnt/project-files/allfix-kb/evals/runs/app-run-2026-10-13/.
+- Result: 8 PASS, 3 PARTIAL (EV-01 Quality Score, EV-03 new niche, EV-04 competitors), 0 FAIL, no
+  traps hit, no invented numbers. 23/31 critical lines under the earlier convention (the chat-only
+  run scored 26/31). Single self-written grader and rubrics: a sign, not proof.
+- Fixes: judge tests in the client's money; say how much data a conclusion rests on; Quality
+  Score per component, never as the cause of CPC; seen / inferred / unknowable for competitors;
+  follow the matching playbook's steps; clearer label definitions (owner's figures are
+  assumptions, account data the user shows is observed). KB error fixed: two lines in
+  measurement/tracking-attribution.md said target changes reset learning (contradicting
+  PLT-BID-011).
+
 ### Supabase ready, eval runner
 - Supabase project (Frankfurt, Postgres 17) now has the full AllFix schema, migrations 001-005,
   recorded in schema_migrations so the app treats them as applied. Tables are owned by `postgres`
