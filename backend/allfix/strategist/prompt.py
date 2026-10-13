@@ -210,4 +210,6 @@ async def project_brief(project_id: str) -> str:
     if lessons:
         lines.append("Lessons to respect:")
         lines += [f"- {l['what_was_wrong']} -> {l['correction']}" for l in lessons]
-    return "Current project state (from the AllFix database):\n" + "\n".join(lines)
+    from datetime import date as _today
+    return (f"Today is {_today.today().isoformat()}.\nCurrent project state (from the AllFix database):\n"
+            + "\n".join(lines))
