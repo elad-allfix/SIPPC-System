@@ -290,15 +290,17 @@ async def account_check_all(request: Request) -> dict:
     """Daily scheduled check for every project with a Google Ads customer id. Local callers only."""
     if request.client and request.client.host not in ("127.0.0.1", "::1", "localhost", "testclient"):
         raise HTTPException(status_code=403, detail="scheduled rounds run from this machine only")
-    rows = await db.fetch_all("select project_id from connection_profiles where ads_customer_id is not null")
+    rows = await db.fetch_all("select cp.project_id, p.name from connection_profiles cp join projects p on p.id = cp.project_id "
+                              "where cp.ads_customer_id is not null")
     results = []
     for r in rows:
         pid = str(r["project_id"])
         try:
             res = await _account_check(pid, force=False)
-            results.append({"project_id": pid, "status": res["status"], "summary": res.get("summary") or res.get("reason")})
+            results.append({"project_id": pid, "project": r["name"], "status": res["status"],
+                            "summary": res.get("summary") or res.get("reason")})
         except HTTPException as e:
-            results.append({"project_id": pid, "status": "failed", "summary": e.detail})
+            results.append({"project_id": pid, "project": r["name"], "status": "failed", "summary": e.detail})
     return {"projects": len(rows), "results": results}
 
 

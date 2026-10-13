@@ -11,7 +11,8 @@ if ($Remove) {
   Unregister-ScheduledTask -TaskName $Name -Confirm:$false
   Write-Host "Removed: $Name"; exit 0
 }
-$python = Join-Path $Root ".venv\Scripts\python.exe"
+# pythonw: no console window. Output goes to logs\check-accounts.log.
+$python = Join-Path $Root ".venv\Scripts\pythonw.exe"
 $action = New-ScheduledTaskAction -Execute $python -Argument "-m allfix check-accounts" -WorkingDirectory (Join-Path $Root "backend")
 $trigger = New-ScheduledTaskTrigger -Daily -At $At
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 20)

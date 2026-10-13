@@ -21,6 +21,7 @@ audit trail. All HTTP here ignores proxy environment variables and uses IPv4 onl
 from __future__ import annotations
 
 import asyncio
+import atexit
 import logging
 import shutil
 import subprocess
@@ -37,6 +38,8 @@ from ..config import get_settings
 
 log = logging.getLogger(__name__)
 
+# No console window flashes when piactl runs from the app on Windows.
+NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 WINDOWS_PIACTL = Path(r"C:\Program Files\Private Internet Access\piactl.exe")
 ECHO_TIMEOUT = 8.0
 
@@ -113,7 +116,7 @@ class Pia:
     def _subprocess(self, args: list[str]) -> str:
         if not self.path:
             raise FileNotFoundError("piactl not found")
-        out = subprocess.run([self.path, *args], capture_output=True, text=True, timeout=10)
+        out = subprocess.run([self.path, *args], capture_output=True, text=True, timeout=10, creationflags=NO_WINDOW)
         if out.returncode != 0:
             raise RuntimeError((out.stderr or out.stdout).strip()[:200] or f"piactl exit {out.returncode}")
         return out.stdout.strip()
@@ -189,7 +192,8 @@ class RouteGuard:
                 pia_up = state == "Connected"
                 checks.append(Check("pia_connected", pia_up, f"PIA reports {state}"))
                 try:
-                    pia_ip = (await self.pia.get("pubip")).strip() or None
+                    ip = (await self.pia.get("pubip")).strip()
+                    pia_ip = None if ip in ("", "Unknown") else ip   # "Unknown" right after connecting
                 except Exception as e:
                     checks.append(Check("pia_public_ip", None, f"could not read PIA public IP: {e}"))
                 if profile.vpn_profile:
@@ -278,7 +282,9 @@ class RouteGuard:
 
         def run():
             try:
-                proc = subprocess.Popen([self.pia.path, "monitor", "connectionstate"], stdout=subprocess.PIPE, text=True)
+                proc = subprocess.Popen([self.pia.path, "monitor", "connectionstate"], stdout=subprocess.PIPE,
+                                        text=True, creationflags=NO_WINDOW)
+                atexit.register(proc.terminate)
             except OSError:
                 return
             for line in proc.stdout:  # one line per state change

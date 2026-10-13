@@ -32,8 +32,22 @@ def _run(coro) -> None:
 
 
 def _check_accounts() -> int:
-    """Ask the running AllFix server to run today's account checks (used by the scheduled task)."""
+    """Ask the running AllFix server to run today's account checks (used by the scheduled task).
+
+    Output also goes to logs/check-accounts.log, since the scheduled task runs without a window."""
     import httpx
+    from datetime import datetime
+
+    from .config import REPO_ROOT
+
+    log_path = REPO_ROOT / "logs" / "check-accounts.log"
+    log_path.parent.mkdir(exist_ok=True)
+
+    def print(msg: str) -> None:  # noqa: A001 - shadow print for this command only
+        with log_path.open("a", encoding="utf-8") as f:
+            f.write(f"{datetime.now():%Y-%m-%d %H:%M} {msg}\n")
+        if sys.stdout is not None:
+            sys.stdout.write(msg + "\n")
 
     s = get_settings()
     host = "127.0.0.1" if s.host in ("0.0.0.0", "::") else s.host
@@ -48,13 +62,17 @@ def _check_accounts() -> int:
         return 1
     out = r.json()
     for res in out["results"]:
-        print(f"{res['project_id']}: {res['status']}: {res['summary']}")
+        print(f"{res.get('project') or res['project_id']}: {res['status']}: {res['summary']}")
     if not out["results"]:
         print("No project has a Google Ads customer id yet; nothing to check.")
     return 0
 
 
 def main() -> None:
+    # Hebrew text and symbols must not crash output on a Windows console or when redirected.
+    for stream in (sys.stdout, sys.stderr):
+        if stream is not None and hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     cmd = sys.argv[1] if len(sys.argv) > 1 else "serve"
     if cmd == "migrate":

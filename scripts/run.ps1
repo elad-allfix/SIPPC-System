@@ -6,4 +6,5 @@ $port = 8000
 $line = Get-Content .env -ErrorAction SilentlyContinue | Where-Object { $_ -match '^PORT=' }
 if ($line) { $port = ($line -replace '^PORT=', '').Trim() }
 Start-Job { Start-Sleep -Seconds 3; Start-Process "http://127.0.0.1:$using:port" } | Out-Null
+$env:PYTHONUTF8 = "1"
 & .\.venv\Scripts\python.exe -m allfix serve

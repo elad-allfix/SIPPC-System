@@ -4,6 +4,15 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 
 ## 2026-10-13
 
+### Windows readiness (static review by Fable; still never run on Windows)
+- Fixed: native PostgreSQL installs get the allfix user and database created by setup.ps1; backups
+  find pg_dump in the PostgreSQL folder, no longer corrupt Docker dumps (copied out of the
+  container instead of piped through PowerShell), and don't abort on stderr notices from Task
+  Scheduler; setup prefers Python 3.13/3.12 and warns when Git for Windows is missing (Claude Code
+  needs it); piactl "Unknown" public IP right after connecting no longer fails the route; piactl
+  runs without console windows and the monitor stops on exit; UTF-8 console output; the daily
+  check runs windowless (pythonw) and logs to logs/check-accounts.log; README says to git clone.
+
 ### First eval run of the real app (11 cases, blind Fable grading)
 - All 11 cases ran through the app on the subscription in about 6 minutes, with no errors.
   Answers and grading: /mnt/project-files/allfix-kb/evals/runs/app-run-2026-10-13/.
