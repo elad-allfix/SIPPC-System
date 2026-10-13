@@ -122,7 +122,7 @@ async def test_run_once_per_day_and_brief_shows_it(database, ads_settings):  # n
     await store.create_item(p["id"], {"stage": 6, "kind": "forecast", "title": "Later one",
                                       "label": "hypothesis", "data": {"review_after": "2099-01-01"}})
     brief = await project_brief(p["id"])
-    assert "Forecasts due for review" in brief and "CPA falls below 120 ILS" in brief and "Later one (id" not in brief
+    assert "due for review" in brief and "CPA falls below 120 ILS" in brief and "Later one (id" not in brief
     assert "Latest daily account check" in brief
 
 
@@ -136,3 +136,27 @@ def _nest(flat: dict) -> dict:
             cur = cur.setdefault(part, {})
         cur[parts[-1]] = v
     return out
+
+
+def test_forecasts_and_experiments_need_review_fields():
+    import pytest
+    from allfix.strategist.tools import ToolError, _check_review_fields
+    with pytest.raises(ToolError, match="review_after"):
+        _check_review_fields({"kind": "forecast", "data": {"prediction": "x", "metric": "CPA"}})
+    with pytest.raises(ToolError, match="YYYY-MM-DD"):
+        _check_review_fields({"kind": "experiment", "data": {"hypothesis": "h", "success_metric": "m",
+                                                              "review_after": "in 4 weeks"}})
+    _check_review_fields({"kind": "forecast", "data": {"prediction": "x", "metric": "CPA", "review_after": "2026-11-10"}})
+    _check_review_fields({"kind": "finding", "data": {}})
+
+
+def test_economics_cpc_scenarios():
+    from allfix.intelligence import economics
+    out = economics.calculate({"conversion_rate": [0.1, 0.2], "close_rate": 0.5, "value_per_customer": 400,
+                               "contribution_margin": 0.5, "acquisition_share": 0.5},
+                              cpc_scenarios=[30, 5, 15], clicks=150)
+    rows = out["scenarios"]["rows"]
+    assert [r["cpc"] for r in rows] == [5, 15, 30] and rows[0]["test_spend"] == 750
+    assert rows[0]["customers"] == {"low": 7.5, "mid": 11.25, "high": 15}
+    # max affordable CPC: low 5, mid 7.5, high 10
+    assert [r["within_affordable_cpc"] for r in rows] == ["all cases", "no case", "no case"]

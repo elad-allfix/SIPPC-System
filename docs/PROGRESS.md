@@ -17,6 +17,15 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
   tried a Write tool (refused) because the parent Claude Code session's memory settings leaked
   into it through environment variables; the strategist now gets those variables blanked, and the
   prompt says it has no file tools.
+- Fable review of run 3: usefulness 7/10, rigor 7/10. Policy, call-ads and forwarding-number
+  claims checked out. Misses: no forecasts saved, budget never in shekels, a "verified" label on
+  an unopened page, night-hour demand handled by switching off, no English/Russian searches,
+  marketplaces not compared as lead sources, bundled risk/question items.
+- Fixes: save_item refuses forecasts/experiments without review_after (and prediction/metric or
+  hypothesis/success_metric); calculate_economics prices a test across CPC scenarios; prompt adds
+  policy check, other languages, device, demand peak vs capacity, marketplaces as lead sources,
+  "observed at most" for unopened pages, screenshots request, one thing per item; due experiments
+  also appear in the project state.
 
 ### Stage 01 and read-only Google Ads (Phase 5)
 - Guard (`connectivity/guard.py`): PIA must report Connected (checked on every request, full check

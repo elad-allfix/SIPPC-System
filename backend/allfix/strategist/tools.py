@@ -6,6 +6,8 @@ runs here against the project database and the knowledge base.
 
 from __future__ import annotations
 
+from datetime import date
+
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
@@ -122,7 +124,7 @@ CLIENT_TOOLS: list[dict] = [
                        "structure: intent_cluster {situation, example_queries, searcher_wants, value, competition}; "
                        "competitor {domain, angles, offers, proof, landing_pages}; decision {decision, reasoning, "
                        "alternatives}; forecast {prediction, metric, expected_range, review_after (YYYY-MM-DD), would_change_if}; "
-                       "experiment {hypothesis, design, success_metric, minimum_volume}.",
+                       "experiment {hypothesis, design, success_metric, minimum_volume, review_after (YYYY-MM-DD)}.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -173,6 +175,11 @@ CLIENT_TOOLS: list[dict] = [
                 "contribution_margin": {**_RANGE, "description": "Share of that value left after variable costs."},
                 "acquisition_share": {**_RANGE, "description": "Share of contribution the business will spend to acquire a customer (1 = break-even)."},
                 "cpc": {**_RANGE, "description": "Observed or estimated CPC to compare."},
+                "cpc_scenarios": {"type": "array", "items": {"type": "number"},
+                                  "description": "Several possible CPCs (up to 8) to price a test before real "
+                                                 "CPCs are known: spend, expected customers and cost per customer "
+                                                 "at each."},
+                "clicks": {"type": "number", "description": "Clicks in the planned test (default 100)."},
             },
             "required": ["conversion_rate", "value_per_customer", "contribution_margin"],
         },
@@ -291,10 +298,29 @@ async def _update_project(ctx: ToolContext, args: dict) -> Any:
     return out
 
 
+def _check_review_fields(args: dict) -> None:
+    """Forecasts and experiments must say when they will be reviewed, or they never come due."""
+    kind, data = args.get("kind"), args.get("data") or {}
+    if kind not in ("forecast", "experiment"):
+        return
+    need = ["review_after"] + (["prediction", "metric"] if kind == "forecast" else ["hypothesis", "success_metric"])
+    missing = [k for k in need if not data.get(k)]
+    if missing:
+        raise ToolError(f"a {kind} needs data.{', data.'.join(missing)}")
+    try:
+        date.fromisoformat(str(data["review_after"]))
+    except ValueError as e:
+        raise ToolError("data.review_after must be a date, YYYY-MM-DD") from e
+
+
 async def _save_item(ctx: ToolContext, args: dict) -> Any:
+    _check_review_fields(args)
     item = await store.create_item(ctx.project_id, args, ctx.conversation_id)
     ctx.saved_items.append(item)
-    return {"saved": True, "id": item["id"], "stage": item["stage"], "kind": item["kind"]}
+    out = {"saved": True, "id": item["id"], "stage": item["stage"], "kind": item["kind"]}
+    if item["kind"] == "experiment":
+        out["reminder"] = "Save a forecast item for each measurable prediction this experiment makes."
+    return out
 
 
 async def _update_item(ctx: ToolContext, args: dict) -> Any:
@@ -309,7 +335,7 @@ async def _update_item(ctx: ToolContext, args: dict) -> Any:
 async def _calculate_economics(ctx: ToolContext, args: dict) -> Any:
     inputs = {k: v for k, v in args.items() if k in economics.INPUTS}
     try:
-        return economics.calculate(inputs, args.get("cpc"))
+        return economics.calculate(inputs, args.get("cpc"), args.get("cpc_scenarios"), args.get("clicks"))
     except ValueError as e:
         raise ToolError(str(e)) from e
 

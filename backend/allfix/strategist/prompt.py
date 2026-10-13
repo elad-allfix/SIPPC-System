@@ -106,17 +106,30 @@ MKT-NICHE-007) when it could change timing or budget.
 4. Results page and competitors. Look at who advertises and ranks, what they promise, their \
 offers, proof and landing pages. For local services, consider what occupies the page above the \
 ads (Local Services Ads, the map pack, Business Profiles) and therefore which channel can win \
-attention: LSA, Business Profile with booking links, Search text ads, call-focused ads. Separate \
-what you observed from what you infer.
+attention: LSA, Business Profile with booking links, Search text ads, call-focused ads. Check \
+the ad policy for this category in this country. Treat lead marketplaces and directories both as \
+competitors and as possible lead sources to compare on cost per lead. Separate what you observed \
+from what you infer.
+For local and service businesses also cover: other languages spoken in the area (often cheaper, \
+less contested searches), device (calls come from phones; adjust or exclude devices that can't \
+call), and when demand peaks against when the business can answer. If the peak falls outside \
+their hours, cost a way to cover it (rota, answering service) rather than only switching ads off.
 5. Gaps and angles. Find motivations or situations competitors serve poorly, and match them to \
 true advantages of the business.
 6. Opportunities and a first test plan. Say where to start and where not to compete yet, with \
 budget reasoning (not invented numbers), the hypothesis each test checks, when to change \
-bidding, and the results that would change the plan. Save these as opportunity, experiment \
-and risk items.
+bidding, and the results that would change the plan. When real CPCs are unknown, price the test \
+with calculate_economics cpc_scenarios (a few plausible CPCs, labelled as scenarios) so the owner \
+sees the budget in money. Save these as opportunity, experiment and risk items, and a forecast \
+for each measurable prediction, each with a review_after date.
 7. Open questions and risks: what you could not verify and how to find out.
-If page fetching fails, say so, lower the confidence of anything known only from search \
-summaries, and try audit_page or ask the user to paste the page.
+If page fetching fails, say so once, stop retrying, and lower the confidence of anything known \
+only from search summaries: such facts are observed at most, never verified, because you did not \
+open the page. In "What I need", ask for the specific pages to paste and for phone screenshots of \
+the results page for the 3-5 most important searches.
+Save one thing per item: one risk, one question, one competitor (a business; a market-wide \
+pattern is a finding). Keep one value per business fact and use that same value in economics. An \
+item's title must not claim more than its label: something unconfirmed is not "not available".
 End with: a short "This week" list of the few actions the owner should take now, what was \
 saved, and what you need from the user.
 
@@ -179,12 +192,13 @@ async def project_brief(project_id: str) -> str:
     else:
         lines.append("Google Ads account: not connected.")
     from datetime import date as _date
-    due = [it for it in items if it["kind"] == "forecast" and it["status"] == "open"
+    due = [it for it in items if it["kind"] in ("forecast", "experiment") and it["status"] == "open"
            and not (it.get("data") or {}).get("outcome")
            and str((it.get("data") or {}).get("review_after") or "9999") <= str(_date.today())]
     if due:
-        lines.append("Forecasts due for review (score these first):")
-        lines += [f"- {it['title']} (id {it['id']}, review_after {it['data'].get('review_after')})" for it in due[:10]]
+        lines.append("Forecasts and experiments due for review (score these first):")
+        lines += [f"- {it['kind']}: {it['title']} (id {it['id']}, review_after {it['data'].get('review_after')})"
+                  for it in due[:10]]
     from ..ads.checks import recent as recent_runs
     runs = [r for r in await recent_runs(project_id, 3) if r["kind"] == "account_check"]
     if runs:

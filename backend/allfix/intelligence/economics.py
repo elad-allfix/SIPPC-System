@@ -58,7 +58,8 @@ def _r(x: float) -> float:
     return round(x, 4) if abs(x) < 10 else round(x, 2)
 
 
-def calculate(inputs: dict, cpc: dict | list | float | None = None) -> dict:
+def calculate(inputs: dict, cpc: dict | list | float | None = None,
+              cpc_scenarios: list[float] | None = None, clicks: float | None = None) -> dict:
     ranges = {}
     for name in INPUTS:
         if name == "close_rate" and name not in inputs:
@@ -127,4 +128,24 @@ def calculate(inputs: dict, cpc: dict | list | float | None = None) -> dict:
             "covered_in_all_cases": max(c.high, 0) <= min(max_cpc),
             "fails_in_all_cases": c.low > max(max_cpc),
         }
+
+    if cpc_scenarios:
+        # What a test of N clicks costs and returns at each CPC, so budgets can be stated before
+        # real CPCs are known ("if clicks cost X, the test costs Y and should bring Z customers").
+        n = float(clicks) if clicks else 100.0
+        rate = {k: getattr(ranges["conversion_rate"], k) * getattr(ranges["close_rate"], k) for k in ("low", "high")}
+        rows = []
+        for raw in sorted({float(x) for x in cpc_scenarios})[:8]:
+            mid_rate = mids["conversion_rate"] * mids["close_rate"]
+            rows.append({
+                "cpc": _r(raw), "test_spend": _r(raw * n),
+                "customers": {"low": _r(n * rate["low"]), "mid": _r(n * mid_rate), "high": _r(n * rate["high"])},
+                "cost_per_customer_mid": _r(raw / mid_rate) if mid_rate else None,
+                "within_affordable_cpc": "all cases" if raw <= min(max_cpc) else
+                                         "mid case" if raw <= max_cpc_mid else
+                                         "only best case" if raw <= max(max_cpc) else "no case",
+            })
+        result["scenarios"] = {"clicks": n, "rows": rows,
+                               "note": "Customers per test are expected values; at 100-200 clicks the real count "
+                                       "varies a lot around them."}
     return result
