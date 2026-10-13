@@ -191,6 +191,78 @@ async def chat(conversation_id: str, body: ChatIn, request: Request) -> Streamin
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+# ---------- stage 01: connectivity and Google Ads ----------
+
+class ProfileIn(BaseModel):
+    ads_customer_id: str | None = None
+    login_customer_id: str | None = None
+    required_country: str | None = Field(default=None, max_length=2)
+    required_region: str | None = None
+    vpn_profile: str | None = None
+    dolphin_profile_id: str | None = None
+
+
+async def _profile(project_id: str):
+    from ..connectivity import profiles
+    from ..connectivity.guard import Profile
+    row = await profiles.get(project_id)
+    if row is None:
+        raise HTTPException(status_code=400, detail="Set up the connection profile first (Stage 01).")
+    return Profile.from_row(row)
+
+
+@router.get("/projects/{project_id}/connectivity")
+async def get_connectivity(project_id: str) -> dict:
+    from ..ads import importer
+    from ..config import get_settings
+    from ..connectivity import profiles
+    s = get_settings()
+    return {"profile": await profiles.get(project_id), "checks": await profiles.recent_checks(project_id, 5),
+            "ads_configured": bool(s.google_oauth_client_id and s.google_oauth_client_secret and s.ads_refresh_token),
+            "ads_api_version": s.ads_api_version, "snapshot": await importer.latest_snapshot(project_id)}
+
+
+@router.put("/projects/{project_id}/connectivity")
+async def put_connectivity(project_id: str, body: ProfileIn) -> dict:
+    from ..connectivity import profiles
+    if await store.get_project(project_id) is None:
+        raise _404("project")
+    try:
+        return await profiles.upsert(project_id, body.model_dump(exclude_none=True))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/projects/{project_id}/connectivity/verify")
+async def verify_connectivity(project_id: str) -> dict:
+    from ..connectivity import get_guard, profiles
+    profile = await _profile(project_id)
+    v = await get_guard().verify(profile)
+    await profiles.record(profile, v)
+    return v.as_dict()
+
+
+@router.post("/projects/{project_id}/ads/import")
+async def import_ads(project_id: str, days: int = 90) -> dict:
+    from ..ads.client import AdsApiError, AdsClient, AdsNotConfigured
+    from ..ads.importer import run_import
+    from ..connectivity import ConnectivityBlocked, get_guard, profiles
+    profile = await _profile(project_id)
+    try:
+        async with AdsClient(profile) as client:
+            result = await run_import(project_id, client, days=max(7, min(days, 365)))
+    except AdsNotConfigured as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ConnectivityBlocked as e:
+        last = get_guard()._last.get(profile.id or profile.project_id)
+        if last:
+            await profiles.record(profile, last)
+        raise HTTPException(status_code=423, detail=f"Blocked by Stage 01: {e}")
+    except AdsApiError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return result
+
+
 # ---------- knowledge ----------
 
 @router.get("/knowledge/search")

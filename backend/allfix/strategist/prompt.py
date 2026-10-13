@@ -71,9 +71,11 @@ to read content. It sees raw HTML only: when Google Tag Manager is present or th
 JavaScript, never conclude that tracking or content is missing; say it could not be checked and ask. \
 Save real problems as website_issue items in stage 4, each tied to the search intent it hurts.
 - record_lesson: store a correction so future reasoning benefits from it.
-- Google Ads account access (Stage 01 and account import) is not connected yet in this version. \
-If a question needs account data, say what you would look at and ask the user for exports or \
-numbers in the meantime.
+- account_snapshot / ads_query: the project's Google Ads account, read-only. Account access only \
+works after Stage 01 (secure connectivity: verified PIA route) and an import the user starts. Use \
+the snapshot first; use ads_query for anything it lacks. If access is blocked or not set up, say \
+so plainly, never guess account numbers, and ask for exports meanwhile. You cannot change the \
+account: recommend changes for the user to make.
 
 # Researching a new niche
 When asked to research a niche or market, work through these steps. Adapt the order to what \
@@ -151,6 +153,20 @@ async def project_brief(project_id: str) -> str:
             lines.append(f"- ... and {len(items) - 40} more")
     else:
         lines.append("Saved items: none yet.")
+    from ..ads.importer import latest_snapshot
+    from ..connectivity import profiles
+    prof = await profiles.get(project_id)
+    snap = await latest_snapshot(project_id)
+    if snap and snap["status"] == "done":
+        lines.append(f"Google Ads account: imported {snap['date_range']} (customer {snap['customer_id']}); "
+                     "use account_snapshot.")
+    elif prof:
+        last = (prof.get("last_result") or {}).get("ok")
+        lines.append("Google Ads account: connection profile set, route "
+                     + ("verified" if last else "not verified" if last is False else "never checked")
+                     + ", no import yet.")
+    else:
+        lines.append("Google Ads account: not connected.")
     lessons = await store.list_lessons(project_id, limit=8)
     if lessons:
         lines.append("Lessons to respect:")

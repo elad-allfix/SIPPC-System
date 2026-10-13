@@ -39,6 +39,20 @@ class Settings(BaseSettings):
     # Working folder for the agent process (holds no project data; transcripts go to the database).
     agent_workdir: Path = REPO_ROOT / ".allfix-agent"
 
+    # Stage 01: secure connectivity. Account access only runs when the route verifies.
+    piactl_path: str | None = None            # default: piactl on PATH, then the standard install folder
+    route_cache_seconds: int = 300            # how long a full IP/geo verification is trusted
+    dolphin_api_url: str = "http://localhost:3001/v1.0"
+    dolphin_api_token: str | None = None
+
+    # Google Ads API (read-only in this version). OAuth "Desktop app" client from a Google Cloud
+    # project; that project's access level decides what the API allows (developer tokens retired
+    # on 2026-09-09).
+    ads_api_version: str = "v25"
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+    ads_refresh_token: str | None = None
+
     host: str = "127.0.0.1"
     port: int = 8000
     # Required when the app is reachable from outside this machine.

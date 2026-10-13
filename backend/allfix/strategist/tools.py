@@ -194,6 +194,32 @@ CLIENT_TOOLS: list[dict] = [
         },
     },
     {
+        "name": "account_snapshot",
+        "description": "The latest imported Google Ads account snapshot for this project: totals, campaigns by "
+                       "spend, search terms without conversions, conversion actions. Pass kind to get rows of one "
+                       "table (campaigns, ad_groups, keywords, search_terms, conversion_actions, daily). Returns "
+                       "a note if nothing has been imported yet.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string", "enum": ["campaigns", "ad_groups", "keywords", "search_terms",
+                                                    "conversion_actions", "daily", "customer"]},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 500},
+            },
+        },
+    },
+    {
+        "name": "ads_query",
+        "description": "Run one read-only GAQL SELECT against the project's Google Ads account, live. Only runs "
+                       "when Stage 01 verifies the secure route; otherwise it is refused and says why. Prefer "
+                       "account_snapshot for anything the import already has. Costs come back in micros.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"query": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 500}},
+            "required": ["query"],
+        },
+    },
+    {
         "name": "record_lesson",
         "description": "Record a correction or lesson so future reasoning sees it. Use when a conclusion, a "
                        "recommendation or a knowledge entry turned out to be wrong. shared=true makes it apply "
@@ -289,6 +315,38 @@ async def _audit_page(ctx: ToolContext, args: dict) -> Any:
     return await website.audit_page(str(args["url"]), args.get("intent"), args.get("ad_headline"))
 
 
+async def _account_snapshot(ctx: ToolContext, args: dict) -> Any:
+    from ..ads import importer
+    snap = await importer.latest_snapshot(ctx.project_id)
+    if snap is None:
+        return {"note": "No Google Ads account has been imported for this project. Account access needs Stage 01 "
+                        "(secure connectivity) and an import, which the user starts from Stage 01."}
+    if args.get("kind"):
+        return {"snapshot": {k: snap[k] for k in ("id", "taken_at", "date_range", "status")},
+                "rows": await importer.snapshot_rows(snap["id"], args["kind"], int(args.get("limit") or 100))}
+    return snap
+
+
+async def _ads_query(ctx: ToolContext, args: dict) -> Any:
+    from ..ads.client import AdsApiError, AdsClient, AdsNotConfigured
+    from ..ads.gaql import GaqlError, validate
+    from ..connectivity import ConnectivityBlocked, profiles
+    from ..connectivity.guard import Profile
+    try:
+        query = validate(str(args["query"]), default_limit=int(args.get("limit") or 200))
+    except GaqlError as e:
+        raise ToolError(f"query refused: {e}") from e
+    row = await profiles.get(ctx.project_id)
+    if row is None:
+        raise ToolError("no connection profile for this project; the user sets it up in Stage 01")
+    try:
+        async with AdsClient(Profile.from_row(row)) as client:
+            rows = await client.search(query, validate=False, max_rows=int(args.get("limit") or 200))
+    except (AdsNotConfigured, ConnectivityBlocked, AdsApiError) as e:
+        raise ToolError(str(e)) from e
+    return {"query": query, "rows": rows, "row_count": len(rows)}
+
+
 async def _record_lesson(ctx: ToolContext, args: dict) -> Any:
     lesson = await store.create_lesson(None if args.get("shared") else ctx.project_id, args)
     return {"recorded": True, "id": lesson["id"]}
@@ -303,6 +361,8 @@ HANDLERS: dict[str, Callable[[ToolContext, dict], Awaitable[Any]]] = {
     "update_item": _update_item,
     "calculate_economics": _calculate_economics,
     "audit_page": _audit_page,
+    "account_snapshot": _account_snapshot,
+    "ads_query": _ads_query,
     "record_lesson": _record_lesson,
 }
 
