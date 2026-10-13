@@ -134,3 +134,15 @@ In each case, say so explicitly, give the next review date, and say what result 
 4. Enhanced conversions are on, and consent mode is set correctly for the regions served (MEA-CONV-010/017/019).
 5. Lead businesses have an offline feedback loop through the Data Manager API, with validation monitoring, because whole requests are rejected if any field fails (MEA-CONV-012/013/014).
 6. A reconciliation routine runs: platform, then analytics, then CRM, then finance (MEA-CONV-025, MEA-ECON-026).
+
+## S8 · Launching a local service business (calls and bookings from nearby customers)
+Use with S1. Read the entries named in each step; search hits alone miss steps.
+1. **Eligibility per channel.** Check LSA at g.co/localservices for the real category and postcode, and record the result (MKT-LOCAL-003). Say whether pre-badge leads apply to this category (MKT-LOCAL-019), check the category's ad policy (MKT-LOCAL-015), and note the migration of LSA into pay-per-lead Performance Max (MKT-LOCAL-006).
+2. **Phone handling first.** Name who answers during every hour the ads and listings run. Set hours to staffed hours everywhere (GBP, LSA, call assets, ad schedule), because LSA charges missed calls and missed calls can hurt ranking (MKT-LOCAL-001, MKT-LOCAL-002, MKT-LOCAL-017, PRC-DIAG-029).
+3. **Business Profile.** Use the real name, a hidden address for service-area businesses, accurate services and hours, photos, and a policy-safe review routine (MKT-LOCAL-009, MKT-LOCAL-012). LSA reviews and badges now live here (MKT-LOCAL-004).
+4. **Channel split by economics.** Pay-per-lead (LSA) suits low tickets. Search suits clusters whose value per click covers realistic CPCs. Compare channels and marketplaces on cost per booked job, not cost per lead (MKT-LOCAL-007, MKT-LOCAL-016).
+5. **Budget table.** One table whose rows sum to the cap in the case where every channel runs from day 1. The forecast uses the same spend. Bid caps stay at or below the affordable CPC from the economics, or are labelled as a loss-tolerant learning test.
+6. **Measurement.** Define the call conversion for the country (duration, or AI-qualified calls in the US/Canada, MKT-LOCAL-014, MEA-CONV-023), keep LSA leads and Search calls separate and deduplicated in the owner's job log, and plan booked-job import (MEA-CONV-012). Express bidding-switch triggers in qualified calls or booked jobs.
+7. **Targeting.** Service area by drive time and job value, "Presence" targeting, the same area on GBP, LSA and ads (MKT-LOCAL-018, PLT-STR-006). Link the Business Profile for location assets (MKT-LOCAL-013).
+
+**Decision points:** cost per booked job by channel against the affordable figure; answer rate below about 90%; LSA leads disputed or out of area; Search clusters that never book after their planned click volume.

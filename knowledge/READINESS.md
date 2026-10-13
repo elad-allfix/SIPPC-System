@@ -2,7 +2,7 @@
 As of 2026-10-13, after one research pass and one evaluation run.
 
 ## Ready to use
-- **Platform mechanics** (auction and quality, keywords and matching, structure and budgets, bidding, ads and assets, AI Max and PMax, measurement). 393 entries (18 on local channels added 2026-10-13), two thirds backed by opened Google documentation. Dozens of entries record a 2025–2026 change, including:
+- **Platform mechanics** (auction and quality, keywords and matching, structure and budgets, bidding, ads and assets, AI Max and PMax, measurement). 394 entries (19 on local channels added 2026-10-13), two thirds backed by opened Google documentation. Dozens of entries record a 2025–2026 change, including:
   - the September 2026 move to AI Max
   - the August 2026 change in how budget-limited target campaigns behave
   - the Data Manager API path for offline import
@@ -29,7 +29,7 @@ Evidence that it helps: in the blind run the knowledge-base strategist met 26 of
 - **One error has already been found and corrected** (Misrepresentation enforcement). There are probably others. Each one found in use should be fixed in the entry itself.
 
 ## Still needs research
-1. **Local business channels:** covered since 2026-10-13 by `market/local-services.md` (18 entries, fact-checked by a second reviewer). Still thin: LSA lead prices by trade and city (Google publishes none), and GBP ranking factors beyond Google's own three (relevance, distance, prominence), where the evidence is vendor surveys.
+1. **Local business channels:** covered since 2026-10-13 by `market/local-services.md` (19 entries, fact-checked by a second reviewer). Still thin: LSA lead prices by trade and city (Google publishes none), and GBP ranking factors beyond Google's own three (relevance, distance, prominence), where the evidence is vendor surveys.
 2. **Vertical rules:** lawyer advertising (state bar rules), insurance state licensing and TCPA details, and healthcare and finance copy limits by country.
 3. **Practitioner pass:** fill the sources the budget cut off. The list, by file, is in `research-gaps.md`.
 4. **Value benchmarks:** lead marketplace and pay-per-call prices, and margins and close rates for common lead-gen verticals. These are priors for click value when a client has none.

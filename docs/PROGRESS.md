@@ -132,3 +132,8 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 - Fable fact-checked every load-bearing claim against the cited pages: "Fit to load", minor corrections applied in the file.
 - Three older entries (MEA-CONV-023, PLT-ADS-019, MKT-WEB-024) said calls count by minimum length. Each now notes the 2026-04 change: in the US and Canada "Calls from ads" are judged by AI-qualified call leads, length is a fallback (MKT-LOCAL-014).
 - Knowledge base now 393 entries; README, READINESS and research-gaps updated; shared copy in /mnt/project-files/allfix-kb (index.jsonl regenerated). Tests 79 passed, 5 skipped.
+
+## 2026-10-13 · Run 5 (new plumber, Phoenix) and fixes
+- Run 5: a US plumber with no ads asks "LSA, Search or both?". Answer in /mnt/project-files/allfix-runs/2026-10-13-run5-plumber-phoenix.md. Fable: usefulness 7/10, rigor 5/10.
+- Real errors: budget rows summed to $3,100-3,315 against a $3,000 cap; a bid cap above its own affordable CPC; it said LSA may not start in month 1 although plumbers get pre-badge leads; "[verified]" dropped Google's "may"; no conversion definition; tool narration in the answer.
+- Fixes (general, not tuned to this case): prompt rules for one budget table that sums to the cap, bid caps at or below affordable CPC, a measurement block, hedges kept in [verified] claims, no narration; new strategic playbook S8 (local service launch); new entry MKT-LOCAL-019 (pre-badge LSA); MKT-LOCAL-001 voicemail rule corrected. Knowledge base 394 entries. Tests 79 passed, 5 skipped. Rerun pending.

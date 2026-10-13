@@ -11,7 +11,7 @@ Checked: 2026-10-13. Research was done with web sources opened on that date. No 
 | Path | What it holds | Entries |
 |---|---|---|
 | `SCHEMA.md` | entry format and rules (evidence type, confidence, sources, "changed" markers) | |
-| `index.jsonl` | one line per entry: id, title, file, evidence type, confidence, changed flag, claim. Generated from the entry headings; Claude regenerates it after edits | 393 |
+| `index.jsonl` | one line per entry: id, title, file, evidence type, confidence, changed flag, claim. Generated from the entry headings; Claude regenerates it after edits | 394 |
 | `platform/auction-quality.md` | Ad Rank, thresholds, pricing, Quality Score, impression share, AI Overviews placement | 30 |
 | `platform/keywords-matching.md` | match types, precedence, AI Max migration, search terms visibility, negatives, Keyword Planner | 33 |
 | `platform/structure-targeting-budgets.md` | campaign structure, location, language, audiences, partners, budgets and pacing, impression share | 30 |
@@ -24,10 +24,10 @@ Checked: 2026-10-13. Research was done with web sources opened on that date. No 
 | `measurement/traffic-quality-economics.md` | invalid traffic, good traffic, break-even, margin, LTV, incrementality | 30 |
 | `market/niche-research.md` | demand sizing, intent clustering, SERP and competitor research, regulated niches, test sizing | 28 |
 | `market/website-journeys.md` | landing page review, speed, forms, trust, journey analytics, lead follow-up | 27 |
-| `market/local-services.md` | Local Services Ads, Google Business Profile and the local pack, call handling, marketplaces, local policy | 18 |
+| `market/local-services.md` | Local Services Ads, Google Business Profile and the local pack, call handling, marketplaces, local policy | 19 |
 | `relationships/metric-relationships.md` | identities, mechanisms, tendencies, misleading metric pairs, what is unobservable | |
 | `playbooks/diagnostic.md` | backbone plus 9 symptom playbooks | |
-| `playbooks/strategic.md` | 7 planning playbooks (new niche, competitors, traffic goals, intent and creative, scaling, doing nothing, measurement) | |
+| `playbooks/strategic.md` | 8 planning playbooks (new niche, competitors, traffic goals, intent and creative, scaling, doing nothing, measurement, local service launch) | |
 | `demo/us-car-insurance-market-research.md` | one complete pre-launch market research, with every claim labelled | |
 | `evals/` | 11 synthetic cases with rubrics, blind runs and graded results | |
 | `research-gaps.md` | what could not be verified, source conflicts and open questions, by file | |
@@ -35,8 +35,8 @@ Checked: 2026-10-13. Research was done with web sources opened on that date. No 
 
 ## Evidence profile (from index.jsonl)
 
-- **Evidence type:** documented 264, study 40, practitioner 40, inference 39, Google statement 8, hypothesis 2.
-- **Confidence:** high 244, medium or medium-high 128, low, low-medium or medium-low 21.
+- **Evidence type:** documented 265, study 40, practitioner 40, inference 39, Google statement 8, hypothesis 2.
+- **Confidence:** high 244, medium or medium-high 129, low, low-medium or medium-low 21.
 - **Recent changes:** 78 entries carry a "(changed YYYY…)" marker.
 
 The base leans toward Google's own documentation because the shared web search budget ran out partway through every area, so practitioner sources are under-represented. `research-gaps.md` lists what is missing.

@@ -30,7 +30,7 @@ def test_project_flow_and_chat_stream():
         ([text("Noted the job value.")], "end_turn"),
     ])
     with client:
-        assert client.get("/api/health").json()["knowledge_entries"] == 393
+        assert client.get("/api/health").json()["knowledge_entries"] == 394
         assert len(client.get("/api/stages").json()) == 7
         p = client.post("/api/projects", json={"name": "Pet grooming", "objective_type": "leads"}).json()
         assert p["stage_counts"].keys() == {str(i) for i in range(1, 8)}
