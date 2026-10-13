@@ -19,12 +19,13 @@ from . import db
 from .api.routes import router
 from .config import get_settings
 from .knowledge import loader
-from .strategist.models import AnthropicModelClient
+from .strategist import ApiStrategist, make_strategist
 
 log = logging.getLogger("allfix")
 
 
-def create_app(model_client_factory=None, load_knowledge: bool = True) -> FastAPI:
+def create_app(model_client_factory=None, load_knowledge: bool = True, strategist=None) -> FastAPI:
+    """model_client_factory: use the API backend with this client (tests). strategist: any backend."""
     settings = get_settings()
 
     @asynccontextmanager
@@ -40,7 +41,9 @@ def create_app(model_client_factory=None, load_knowledge: bool = True) -> FastAP
         await db.close_pool()
 
     app = FastAPI(title="AllFix", lifespan=lifespan)
-    app.state.model_client_factory = model_client_factory or AnthropicModelClient
+    if strategist is None:
+        strategist = ApiStrategist(model_client_factory) if model_client_factory else make_strategist()
+    app.state.strategist = strategist
 
     if settings.allfix_password:
         expected = settings.allfix_password

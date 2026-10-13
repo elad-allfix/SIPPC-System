@@ -13,3 +13,4 @@ frontend/dist/
 backups/
 *.log
 *.tsbuildinfo
+.allfix-agent/

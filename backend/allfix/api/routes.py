@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field
 
 from .. import store
 from ..knowledge import search as kb
-from ..strategist.loop import run_turn
 from ..strategist.models import spec_for
 
 router = APIRouter(prefix="/api")
@@ -71,11 +70,17 @@ def _404(what: str) -> HTTPException:
 
 
 @router.get("/health")
-async def health() -> dict:
+async def health(request: Request) -> dict:
     from .. import db
     n = await db.fetch_one("select count(*) as n from kb_entries")
-    return {"ok": True, "knowledge_entries": n["n"] if n else 0,
-            "models": {"standard": spec_for("standard").model, "deep": spec_for("deep").model}}
+    backend = request.app.state.strategist.backend
+    out = {"ok": True, "knowledge_entries": n["n"] if n else 0, "backend": backend,
+           "models": {"standard": spec_for("standard").model, "deep": spec_for("deep").model}}
+    if backend == "subscription":
+        from ..strategist.subscription import STATUS
+        out["subscription"] = {"api_key_source": STATUS["auth"], "rate_limit": STATUS["rate_limit"],
+                               "checked_at": STATUS["checked_at"]}
+    return out
 
 
 @router.get("/stages")
@@ -150,10 +155,10 @@ async def list_conversations(project_id: str) -> list[dict]:
 
 
 @router.post("/projects/{project_id}/conversations", status_code=201)
-async def create_conversation(project_id: str, body: ConversationIn) -> dict:
+async def create_conversation(project_id: str, body: ConversationIn, request: Request) -> dict:
     if await store.get_project(project_id) is None:
         raise _404("project")
-    return await store.create_conversation(project_id, body.title)
+    return await store.create_conversation(project_id, body.title, request.app.state.strategist.backend)
 
 
 @router.get("/conversations/{conversation_id}/messages")
@@ -168,18 +173,16 @@ async def chat(conversation_id: str, body: ChatIn, request: Request) -> Streamin
     conv = await store.get_conversation(conversation_id)
     if conv is None:
         raise _404("conversation")
-    try:
-        client = request.app.state.model_client_factory()
-    except Exception as e:  # e.g. no API key configured
-        client = None
-        setup_error = f"The strategist is not configured: {str(e)[:200]}. Set ANTHROPIC_API_KEY."
+    strategist = request.app.state.strategist
 
     async def events():
-        if client is None:
-            yield f"event: error\ndata: {json.dumps({'type': 'error', 'message': setup_error})}\n\n"
+        if conv.get("backend", "api") != strategist.backend:
+            msg = (f"This conversation was started on the {conv.get('backend')} backend and AllFix now runs on "
+                   f"{strategist.backend}. Start a new conversation; saved findings are kept.")
+            yield f"event: error\ndata: {json.dumps({'type': 'error', 'message': msg})}\n\n"
             return
         try:
-            async for ev in run_turn(client, conv["project_id"], conversation_id, body.message, body.mode):
+            async for ev in strategist.run_turn(conv["project_id"], conversation_id, body.message, body.mode):
                 yield f"event: {ev['type']}\ndata: {json.dumps(ev, ensure_ascii=False, default=str)}\n\n"
         except Exception as e:  # last resort: tell the browser instead of hanging
             yield f"event: error\ndata: {json.dumps({'type': 'error', 'message': str(e)[:300]})}\n\n"

@@ -234,9 +234,18 @@ async def list_conversations(project_id: str) -> list[dict]:
         "select * from conversations where project_id = %s order by updated_at desc", (project_id,)))
 
 
-async def create_conversation(project_id: str, title: str = "New conversation") -> dict:
+async def create_conversation(project_id: str, title: str = "New conversation",
+                              backend: str | None = None) -> dict:
+    if backend is None:
+        from .config import get_settings
+        backend = get_settings().strategist_backend
     return _clean(await db.fetch_one(
-        "insert into conversations (project_id, title) values (%s, %s) returning *", (project_id, title)))
+        "insert into conversations (project_id, title, backend) values (%s, %s, %s) returning *",
+        (project_id, title, backend)))
+
+
+async def set_agent_session(conversation_id: str, session_id: str | None) -> None:
+    await db.execute("update conversations set agent_session_id = %s where id = %s", (session_id, conversation_id))
 
 
 async def get_conversation(conversation_id: str) -> dict | None:
