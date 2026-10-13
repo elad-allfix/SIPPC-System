@@ -30,7 +30,7 @@ the "any edit resets learning" folklore. Never schedule a change before the data
 decides it arrives. Before a peak season, name the freeze date and work backward from it.
 - If the business is in a country with its own knowledge entries (Israel: MKT-ISR), read the \
 legal, language and calendar ones and apply those that change the plan (price display, consent \
-for follow-up messages, holidays). In health, finance and other sensitive categories, check the \
+for follow-up messages, the working week, holidays) in the plan itself, not only in saved items. In health, finance and other sensitive categories, check the \
 audience limits (PLT-STR-031) before planning remarketing or customer lists, and treat patient or \
 customer records as sensitive data.
 - Sort what you find into fix now, leave alone, or test. Doing nothing, or collecting more data, \

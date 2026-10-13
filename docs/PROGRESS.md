@@ -172,3 +172,8 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 - Four new evaluation cases built from runs 5-8 and their reviews: EV-12 local launch (LSA vs Search), EV-13 investor wants traffic (SaaS), EV-14 ROAS up but store revenue flat after PMax, EV-15 Israeli dental clinic in Hebrew. 15 cases in total; `scripts/run_evals.py` picks them up.
 - Found and closed a blind-eval leak: the strategist's read_knowledge could read `evals/cases` (rubrics) by slug. It now reads with include_evals=False; people can still open them in the Knowledge view. New test. 82 passed, 5 skipped.
 - Checked the stored agent transcripts (2,778 entries, including deleted eval projects): the strategist never read an eval document, so earlier eval scores were not contaminated.
+
+## 2026-10-13 · Baseline for the new cases EV-12..15
+- Blind run graded by Fable (/mnt/project-files/allfix-kb/evals/runs/app-run-2026-10-13-new-cases/GRADING.md): EV-12, EV-13, EV-14 PASS; EV-15 PARTIAL. Critical lines 11/12; all 27 cited entry ids checked and supported; arithmetic and dates correct; no traps.
+- EV-15 missed the consent rule for promotional WhatsApp follow-ups and the Sunday-Thursday week in its schedule. The country rule now says such constraints go in the plan itself, not only in saved items.
+- Windows: added "Setup AllFix.cmd" and "Start AllFix.cmd" (double-click); setup.ps1 links a zip-filled folder to GitHub when its repository has no commits. Code copied to Elad's PC folder; setup not run yet.
