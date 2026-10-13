@@ -24,7 +24,8 @@ def queries(start: str, end: str) -> dict[str, str]:
         "campaigns": "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, "
                      "campaign.bidding_strategy_type, campaign_budget.amount_micros, "
                      f"metrics.search_impression_share, metrics.search_budget_lost_impression_share, "
-                     f"metrics.search_rank_lost_impression_share, {METRICS} FROM campaign WHERE {during}",
+                     f"metrics.search_rank_lost_impression_share, {METRICS} FROM campaign "
+                     f"WHERE {during} AND campaign.status != 'REMOVED'",
         "ad_groups": f"SELECT campaign.name, ad_group.id, ad_group.name, ad_group.status, {METRICS} "
                      f"FROM ad_group WHERE {during} AND metrics.impressions > 0",
         "keywords": "SELECT campaign.name, ad_group.name, ad_group_criterion.keyword.text, "
@@ -35,7 +36,8 @@ def queries(start: str, end: str) -> dict[str, str]:
                         f"{METRICS} FROM search_term_view WHERE {during} ORDER BY metrics.cost_micros DESC LIMIT 2000",
         "conversion_actions": "SELECT conversion_action.name, conversion_action.category, conversion_action.status, "
                               "conversion_action.type, conversion_action.primary_for_goal, "
-                              "conversion_action.counting_type FROM conversion_action",
+                              "conversion_action.counting_type FROM conversion_action "
+                              "WHERE conversion_action.status != 'REMOVED'",
         "daily": f"SELECT segments.date, {METRICS} FROM customer WHERE {during}",
     }
 
@@ -56,7 +58,9 @@ def summarise(data: dict[str, list[dict]]) -> dict:
     conv = sum(_num(r.get("metrics.conversions")) for r in camps)
     value = sum(_num(r.get("metrics.conversionsValue")) for r in camps)
     terms = data.get("search_terms", [])
-    no_conv = [r for r in terms if _num(r.get("metrics.conversions")) == 0 and _num(r.get("metrics.costMicros")) > 0]
+    # Terms already excluded as negatives are not candidates for new negatives.
+    no_conv = [r for r in terms if _num(r.get("metrics.conversions")) == 0 and _num(r.get("metrics.costMicros")) > 0
+               and r.get("searchTermView.status") not in ("EXCLUDED", "ADDED_EXCLUDED")]
     no_conv_cost = sum(_num(r.get("metrics.costMicros")) for r in no_conv) / 1e6
     actions = data.get("conversion_actions", [])
     return {
@@ -66,18 +70,21 @@ def summarise(data: dict[str, list[dict]]) -> dict:
         "cost": round(cost, 2), "clicks": int(clicks), "conversions": round(conv, 2),
         "conversion_value": round(value, 2),
         "cost_per_conversion": round(cost / conv, 2) if conv else None,
-        "campaigns": len(camps),
+        "campaigns_enabled": sum(1 for r in camps if r.get("campaign.status") == "ENABLED"),
+        "campaigns_with_spend": sum(1 for r in camps if _num(r.get("metrics.costMicros")) > 0),
         "campaigns_by_spend": [
             {"name": r.get("campaign.name"), "type": r.get("campaign.advertisingChannelType"),
-             "bidding": r.get("campaign.biddingStrategyType"),
+             "status": r.get("campaign.status"), "bidding": r.get("campaign.biddingStrategyType"),
+             "daily_budget": round(_num(r.get("campaignBudget.amountMicros")) / 1e6, 2) or None,
              "cost": round(_num(r.get("metrics.costMicros")) / 1e6, 2), "conversions": _num(r.get("metrics.conversions")),
              "impression_share": r.get("metrics.searchImpressionShare")}
             for r in sorted(camps, key=lambda r: -_num(r.get("metrics.costMicros")))[:10]],
         "search_terms_without_conversions": {
             "count": len(no_conv), "cost": round(no_conv_cost, 2),
-            "share_of_term_cost": round(no_conv_cost / (sum(_num(r.get("metrics.costMicros")) for r in terms) / 1e6), 3)
+            "scope": "the 2,000 costliest search terms in the window, excluding terms already negated",
+            "share_of_top_term_cost": round(no_conv_cost / (sum(_num(r.get("metrics.costMicros")) for r in terms) / 1e6), 3)
             if terms and any(_num(r.get("metrics.costMicros")) for r in terms) else None,
-            "top": [{"term": r.get("searchTermView.searchTerm"), "cost": round(_num(r.get("metrics.costMicros")) / 1e6, 2),
+            "top": [{"term": r.get("searchTermView.searchTerm"), "status": r.get("searchTermView.status"), "cost": round(_num(r.get("metrics.costMicros")) / 1e6, 2),
                      "clicks": int(_num(r.get("metrics.clicks")))} for r in no_conv[:20]],
             "note": "Zero conversions in the window is not proof of waste: check conversion lag, volume and tracking.",
         },
@@ -89,6 +96,9 @@ def summarise(data: dict[str, list[dict]]) -> dict:
 
 
 async def run_import(project_id: str, client: AdsClient, days: int = 90, today: date | None = None) -> dict:
+    if not client.profile.ads_customer_id:
+        from .client import AdsNotConfigured
+        raise AdsNotConfigured("the connection profile has no Google Ads customer id")
     end = (today or date.today()) - timedelta(days=1)
     start = end - timedelta(days=days - 1)
     snap = await db.fetch_one(

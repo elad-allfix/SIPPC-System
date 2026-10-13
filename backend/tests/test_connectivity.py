@@ -72,7 +72,7 @@ async def test_missing_piactl_blocks():
     guard = g.RouteGuard(pia=g.Pia(path=None, runner=None), transport=echo_transport())
     guard.pia.path = None
     v = await guard.verify(PROFILE)
-    assert not v.ok and "not found" in v.checks[0].detail
+    assert not v.ok and v.checks[0].detail.startswith("piactl (Private Internet Access command line) was not found")
 
 
 async def test_region_mismatch_is_advisory_only():
@@ -97,11 +97,32 @@ async def test_tunnel_drop_blocks_even_with_a_cached_pass():
     pia._run = lambda args: "Disconnected"
     with pytest.raises(g.ConnectivityBlocked):
         await guard.ensure(PROFILE)
-    guard2 = make_guard()
+    pia2 = fake_pia()
+    guard2 = make_guard(pia=pia2)
     await guard2.ensure(PROFILE)
     guard2._tunnel_down.set()                                   # what the PIA monitor does
+    before = len(pia2.calls)
+    await guard2.ensure(PROFILE)                                # cached pass ignored: full check again
+    assert ["get", "pubip"] in pia2.calls[before:] and not guard2._tunnel_down.is_set()
+    guard2._tunnel_down.set()
+    pia2._run = lambda args: "Disconnected"
     with pytest.raises(g.ConnectivityBlocked):
         await guard2.ensure(PROFILE)
+
+
+async def test_no_echo_requests_without_the_tunnel():
+    seen = []
+    guard = g.RouteGuard(pia=fake_pia(state="Disconnected"),
+                         transport=httpx.MockTransport(lambda r: seen.append(r) or httpx.Response(500)))
+    v = await guard.verify(PROFILE)
+    assert not v.ok and seen == []
+
+
+def test_pia_available_flag():
+    assert g.Pia(path=None, runner=lambda a: "x").available
+    p = g.Pia(path=None)
+    p.path = None
+    assert not p.available
 
 
 class Recorder(httpx.AsyncBaseTransport):
@@ -177,6 +198,11 @@ def test_ads_client_explains_missing_setup(monkeypatch):
     assert "ads-login" in str(e.value)
 
 
+def test_gaql_limit_goes_before_parameters():
+    q = gaql.validate("SELECT campaign.name FROM campaign PARAMETERS include_drafts = true")
+    assert q == "SELECT campaign.name FROM campaign LIMIT 200 PARAMETERS include_drafts = true"
+
+
 @pytest.mark.parametrize("q,ok", [
     ("SELECT campaign.name FROM campaign", True),
     ("select metrics.clicks from search_term_view where segments.date during LAST_30_DAYS limit 5000", True),
@@ -205,7 +231,8 @@ async def test_import_stores_snapshot_and_summary(database, ads_settings):
                    {"campaign": {"name": "PMax"}, "metrics": {"costMicros": "50000000", "clicks": "20", "conversions": 1}}]
         elif "FROM search_term_view" in q:
             res = [{"searchTermView": {"searchTerm": "free grooming course"}, "metrics": {"costMicros": "30000000", "clicks": "9", "conversions": 0}},
-                   {"searchTermView": {"searchTerm": "mobile groomer austin"}, "metrics": {"costMicros": "40000000", "clicks": "10", "conversions": 3}}]
+                   {"searchTermView": {"searchTerm": "mobile groomer austin"}, "metrics": {"costMicros": "40000000", "clicks": "10", "conversions": 3}},
+                   {"searchTermView": {"searchTerm": "groomer jobs", "status": "EXCLUDED"}, "metrics": {"costMicros": "9000000", "clicks": "3", "conversions": 0}}]
         elif "FROM conversion_action" in q:
             res = [{"conversionAction": {"name": "Booking", "category": "PURCHASE", "primaryForGoal": True}}]
         else:
@@ -217,7 +244,7 @@ async def test_import_stores_snapshot_and_summary(database, ads_settings):
     s = out["summary"]
     assert out["date_range"] == "2026-09-13..2026-10-12"
     assert s["account"] == "Acme" and s["cost"] == 150.0 and s["conversions"] == 5 and s["cost_per_conversion"] == 30.0
-    assert s["search_terms_without_conversions"]["top"][0]["term"] == "free grooming course"
+    assert [t["term"] for t in s["search_terms_without_conversions"]["top"]] == ["free grooming course"]   # negated term left out
     assert s["conversion_actions"][0]["primary"] is True
     snap = await importer.latest_snapshot(p["id"])
     assert snap["status"] == "done"
@@ -238,6 +265,7 @@ def test_api_profile_and_verify():
             assert client.post(f"/api/projects/{pid}/connectivity/verify").status_code == 400
             r = client.put(f"/api/projects/{pid}/connectivity", json={"required_country": "us", "ads_customer_id": "123-456-7890"})
             assert r.json()["required_country"] == "US"
+            assert client.put(f"/api/projects/{pid}/connectivity", json={"required_country": ""}).status_code == 400
             v = client.post(f"/api/projects/{pid}/connectivity/verify").json()
             assert v["ok"] is False and any(c["name"] == "country" and c["ok"] is False for c in v["checks"])
             state = client.get(f"/api/projects/{pid}/connectivity").json()

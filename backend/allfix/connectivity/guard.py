@@ -53,7 +53,7 @@ class Profile:
     login_customer_id: str | None
     required_country: str            # ISO 3166-1 alpha-2, e.g. "US"
     required_region: str | None = None
-    vpn_profile: str | None = None   # PIA region name, informational
+    vpn_profile: str | None = None   # PIA region id as piactl names it; a mismatch is advisory
     dolphin_profile_id: str | None = None
 
     @classmethod
@@ -103,11 +103,12 @@ class Pia:
     def __init__(self, path: str | None = None, runner: Callable[[list[str]], str] | None = None):
         self.path = path or get_settings().piactl_path or shutil.which("piactl") or (
             str(WINDOWS_PIACTL) if WINDOWS_PIACTL.exists() else None)
+        self._custom_runner = runner is not None
         self._run = runner or self._subprocess
 
     @property
     def available(self) -> bool:
-        return self.path is not None or self._run is not self._subprocess
+        return self.path is not None or self._custom_runner
 
     def _subprocess(self, args: list[str]) -> str:
         if not self.path:
@@ -179,12 +180,14 @@ class RouteGuard:
 
         # 1. PIA state
         pia_ip = None
+        pia_up = False
         if not self.pia.available:
             checks.append(Check("pia_connected", False, "piactl (Private Internet Access command line) was not found"))
         else:
             try:
                 state = await self.pia.get("connectionstate")
-                checks.append(Check("pia_connected", state == "Connected", f"PIA reports {state}"))
+                pia_up = state == "Connected"
+                checks.append(Check("pia_connected", pia_up, f"PIA reports {state}"))
                 try:
                     pia_ip = (await self.pia.get("pubip")).strip() or None
                 except Exception as e:
@@ -192,12 +195,17 @@ class RouteGuard:
                 if profile.vpn_profile:
                     try:
                         region = await self.pia.get("region")
-                        checks.append(Check("pia_region", None if region == "auto" else region == profile.vpn_profile,
+                        checks.append(Check("pia_region (advisory)", None if region == "auto" else region == profile.vpn_profile,
                                             f"PIA region {region}, expected {profile.vpn_profile}"))
                     except Exception as e:
-                        checks.append(Check("pia_region", None, f"could not read PIA region: {e}"))
+                        checks.append(Check("pia_region (advisory)", None, f"could not read PIA region: {e}"))
             except Exception as e:
                 checks.append(Check("pia_connected", False, f"piactl failed: {e}"))
+
+        if not pia_up:
+            # Without the tunnel, asking outside services would show them the real IP. Stop here.
+            checks.append(Check("ip_echo", None, "skipped because PIA is not connected; nothing was sent"))
+            return self._remember(profile, Verification(False, checks))
 
         # 2-3. What the internet sees
         async with self._client() as client:
@@ -232,6 +240,8 @@ class RouteGuard:
 
         ok = all(c.ok is not False for c in checks if not c.name.endswith("(advisory)") and c.name != "dolphin")
         v = Verification(ok, checks, public_ip, country, regions[0] if regions else None)
+        if ok:
+            self._tunnel_down.clear()   # PIA says Connected and the route checks out right now
         return self._remember(profile, v)
 
     def _remember(self, profile: Profile, v: Verification) -> Verification:
@@ -240,9 +250,9 @@ class RouteGuard:
 
     async def ensure(self, profile: Profile) -> Verification:
         """Raise ConnectivityBlocked unless the route is verified now. Called before protected requests."""
-        if self._tunnel_down.is_set():
-            raise ConnectivityBlocked("PIA reported the tunnel down; verify the connection again")
         key = profile.id or profile.project_id
+        if self._tunnel_down.is_set():
+            self._last.pop(key, None)   # the monitor saw a drop: no cached pass counts, check everything again
         last = self._last.get(key)
         if last and last.ok and time.time() - last.at < self.cache_seconds:
             # Cheap re-check of the tunnel on every request; the full echo/geo check is cached.
@@ -277,6 +287,7 @@ class RouteGuard:
                 else:
                     self._tunnel_down.set()
                     self._last.clear()
+            self._monitor = None   # the monitor ended; ensure() still checks PIA on every request
 
         self._monitor = threading.Thread(target=run, name="pia-monitor", daemon=True)
         self._monitor.start()

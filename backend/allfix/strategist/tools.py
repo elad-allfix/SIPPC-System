@@ -339,10 +339,15 @@ async def _ads_query(ctx: ToolContext, args: dict) -> Any:
     row = await profiles.get(ctx.project_id)
     if row is None:
         raise ToolError("no connection profile for this project; the user sets it up in Stage 01")
+    profile = Profile.from_row(row)
     try:
-        async with AdsClient(Profile.from_row(row)) as client:
+        async with AdsClient(profile) as client:
             rows = await client.search(query, validate=False, max_rows=int(args.get("limit") or 200))
-    except (AdsNotConfigured, ConnectivityBlocked, AdsApiError) as e:
+    except ConnectivityBlocked as e:
+        from ..connectivity import get_guard
+        await profiles.record_last(get_guard(), profile)
+        raise ToolError(f"blocked by Stage 01: {e}") from e
+    except (AdsNotConfigured, AdsApiError) as e:
         raise ToolError(str(e)) from e
     return {"query": query, "rows": rows, "row_count": len(rows)}
 

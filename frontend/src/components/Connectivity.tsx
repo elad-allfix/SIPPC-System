@@ -9,7 +9,7 @@ const CHECK_TITLE: Record<string, string> = {
   profile: "Connection profile",
   pia_connected: "PIA connected",
   pia_public_ip: "PIA public IP",
-  pia_region: "PIA region",
+  "pia_region (advisory)": "PIA region (advisory)",
   ip_echo: "Outside services agree on the IP",
   matches_pia: "IP matches PIA",
   country: "Country",
@@ -63,7 +63,7 @@ function Snapshot({ s }: { s: NonNullable<State["snapshot"]> }) {
       <div className="text-faint">{s.date_range} · imported {new Date(s.taken_at).toLocaleString()}</div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
         {([["Cost", money(m.cost, m.currency)], ["Conversions", m.conversions], ["Cost / conv.", money(m.cost_per_conversion, m.currency)],
-          ["Clicks", m.clicks], ["Campaigns", m.campaigns], ["Auto-tagging", m.auto_tagging === false ? "off" : m.auto_tagging ? "on" : "n/a"]] as const)
+          ["Clicks", m.clicks], ["Campaigns live", m.campaigns_enabled], ["Auto-tagging", m.auto_tagging === false ? "off" : m.auto_tagging ? "on" : "n/a"]] as const)
           .map(([k, v]) => <div key={k}><dt className="text-faint">{k}</dt><dd className="tabular-nums">{String(v ?? "n/a")}</dd></div>)}
       </dl>
       {terms.count > 0 && <div className="text-muted">{terms.count} search terms spent {money(terms.cost, m.currency)} with no conversion in the window. Not proof of waste: ask the strategist.</div>}

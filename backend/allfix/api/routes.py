@@ -254,9 +254,7 @@ async def import_ads(project_id: str, days: int = 90) -> dict:
     except AdsNotConfigured as e:
         raise HTTPException(status_code=400, detail=str(e))
     except ConnectivityBlocked as e:
-        last = get_guard()._last.get(profile.id or profile.project_id)
-        if last:
-            await profiles.record(profile, last)
+        await profiles.record_last(get_guard(), profile)
         raise HTTPException(status_code=423, detail=f"Blocked by Stage 01: {e}")
     except AdsApiError as e:
         raise HTTPException(status_code=502, detail=str(e))

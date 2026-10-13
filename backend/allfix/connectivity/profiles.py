@@ -26,6 +26,8 @@ async def upsert(project_id: str, data: dict) -> dict:
     fields = {k: (v.strip() if isinstance(v, str) else v) or None for k, v in data.items() if k in FIELDS}
     if fields.get("required_country"):
         fields["required_country"] = fields["required_country"].upper()
+    if "required_country" in fields and not fields["required_country"]:
+        raise ValueError("required_country can't be empty (two-letter code, e.g. US)")
     existing = await get(project_id)
     if existing is None:
         if not fields.get("required_country"):
@@ -49,6 +51,13 @@ async def record(profile: Profile, v: Verification) -> None:
         (profile.id, v.ok, v.public_ip, v.country, v.region, json.dumps([c.as_dict() for c in v.checks])))
     await db.execute("update connection_profiles set last_verified_at = now(), last_result = %s::jsonb where id = %s",
                      (json.dumps(v.as_dict()), profile.id))
+
+
+async def record_last(guard, profile: Profile) -> None:
+    """Log the guard's latest verification for this profile (used after a blocked request)."""
+    last = guard._last.get(profile.id or profile.project_id)
+    if last is not None:
+        await record(profile, last)
 
 
 async def recent_checks(project_id: str, limit: int = 10) -> list[dict]:
