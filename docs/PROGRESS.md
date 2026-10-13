@@ -4,6 +4,21 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 
 ## 2026-10-13
 
+### Stage 01 and read-only Google Ads (Phase 5)
+- Guard (`connectivity/guard.py`): PIA must report Connected (checked on every request, full check
+  cached 5 min, a `piactl monitor` thread blocks on a drop); two of three IP-echo services must agree
+  and match PIA's public IP; country strict, region advisory; Dolphin optional and advisory. Network
+  path ignores proxies and is IPv4 only. Fable reviewed the design before building.
+- `GuardedTransport` refuses any endpoint except OAuth token, listAccessibleCustomers and
+  search/searchStream, then asks the guard, so mutations can't leave the machine.
+- `ads/`: REST client (v25), GAQL allowlist with a 1,000-row cap, 7-query 90-day import with a plain
+  summary, `ads_query` and `account_snapshot` tools, `python -m allfix ads-login` (loopback OAuth +
+  PKCE, token exchange through the guard, writes the refresh token to .env).
+- Stage 01 screen: profile form, Verify route checklist, read-only import, snapshot summary.
+- Bug found by tests: the client passed a 10,000-row default that skipped the 1,000 cap. Fixed.
+- Not verified: real PIA, Dolphin's local API path, a real Google Ads account.
+- GitHub repo elad-allfix/SIPPC-System connected at 12:00; push waits on the public/private question.
+
 ### First real research run (run 1: mobile dog grooming, Austin)
 - Ran end to end on the subscription (Opus 5.5, Standard): 44 steps, 5.4 min, 11 items + 6 facts
   saved. Full output: /mnt/project-files/allfix-runs/2026-10-13-run1-mobile-dog-grooming-austin.md

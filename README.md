@@ -5,11 +5,12 @@ knowledge base, live web research, and a project memory that keeps findings, dec
 forecasts with their evidence labels.
 
 The same code runs on your PC and in the cloud. Code lives in GitHub, data in Postgres (local or
-Supabase, used as plain Postgres), and Google Ads account access will only ever run on the PC,
-behind the PIA + Dolphin checks of Stage 01.
+Supabase, used as plain Postgres), and Google Ads account access only runs on the PC,
+behind the PIA route check of Stage 01.
 
 - Specification: [docs/SPEC.md](docs/SPEC.md)
 - Roadmap and status: [docs/ROADMAP.md](docs/ROADMAP.md)
+- Progress log: [docs/PROGRESS.md](docs/PROGRESS.md)
 
 ## Set up on Windows
 
@@ -20,13 +21,26 @@ cd "C:\Users\Itzhak\AI-Projects\SIPPC System"
 powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 ```
 
-Then open `.env`, set `ANTHROPIC_API_KEY`, and start it:
+The strategist uses your own Claude subscription through Claude Code's sign-in, so there is no API
+key to set. If you have never signed in on this PC, install Claude Code and run `claude` once to log
+in. Then start AllFix:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\run.ps1
 ```
 
-AllFix opens at http://127.0.0.1:8000.
+AllFix opens at http://127.0.0.1:8000. The footer of the left rail shows "Claude subscription" and
+how much of the current 5-hour usage window is used.
+
+To use the paid Claude API instead (for example on a shared server), set `STRATEGIST_BACKEND=api`
+and `ANTHROPIC_API_KEY` in `.env`. The subscription backend only answers requests from this PC.
+
+### Google Ads (read-only)
+
+See [docs/GOOGLE_ADS_SETUP.md](docs/GOOGLE_ADS_SETUP.md). In short: PIA with the kill switch on, a
+Google Cloud project with Explorer access, a Desktop OAuth client, then
+`python -m allfix ads-login --country US`. Every Google request is refused unless the Stage 01 route
+check passes, and only read endpoints are allowed.
 
 ### Database choices
 
@@ -53,6 +67,7 @@ scripts/setup.sh && scripts/run.sh
 python -m allfix serve            start the app
 python -m allfix migrate          create or update tables
 python -m allfix load-knowledge   (re)load the knowledge/ folder into the database
+python -m allfix ads-login --country US   sign in to Google Ads (through the PIA check)
 ```
 
 Edit files in `knowledge/` and run `load-knowledge` (or restart) to update what the strategist knows.
@@ -70,9 +85,11 @@ Point the tests at another database with `ALLFIX_TEST_DATABASE_URL`. Tests never
 ```
 backend/allfix/
   api/            HTTP API and the chat stream
-  strategist/     model client (replaceable), system prompt, tools, the turn loop
+  strategist/     both backends (subscription via the Claude Agent SDK, or the API), prompt, tools
   knowledge/      loader and search over knowledge/
-  intelligence/   analytical tools (economics today)
+  intelligence/   analytical tools (economics, website audit)
+  connectivity/   Stage 01: PIA route guard, guarded network transport, connection profiles
+  ads/            read-only Google Ads client, GAQL allowlist, snapshot import, ads-login
   migrations/     plain SQL, applied in order
   store.py        projects, facts, items, conversations, lessons
 frontend/         React interface (built to frontend/dist, served by the backend)

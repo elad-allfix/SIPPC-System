@@ -31,7 +31,14 @@ Pop-Location
 # 4. Settings
 if (-not (Test-Path ".env")) {
   Copy-Item .env.example .env
-  Write-Host "Created .env. Open it and set ANTHROPIC_API_KEY (and DATABASE_URL if not using the default)." -ForegroundColor Yellow
+  Write-Host "Created .env. The defaults use your Claude subscription and a local database; change DATABASE_URL for Supabase." -ForegroundColor Yellow
+}
+
+# 4b. Claude sign-in: the strategist uses your own Claude plan through Claude Code's login
+if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+  Write-Host "Claude Code is not installed. Install it (https://code.claude.com) and run 'claude' once to sign in with your Claude account." -ForegroundColor Yellow
+} else {
+  Write-Host "Claude Code found. If you have not signed in on this PC yet, run 'claude' once and log in." -ForegroundColor Green
 }
 
 # 5. Database: start the local Postgres container if Docker is available and .env points at localhost
