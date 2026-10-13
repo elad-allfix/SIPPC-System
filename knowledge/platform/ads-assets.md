@@ -191,7 +191,7 @@ This file covers how Google assembles responsive search ads (RSAs) from headline
 - **Sources:** [About price assets](https://support.google.com/google-ads/answer/7065415) (checked 2026-10-13); [About promotion assets](https://support.google.com/google-ads/answer/7367521) (checked 2026-10-13)
 
 ### PLT-ADS-019 · Call and location assets
-- **Claim:** Call numbers must be in E.164 format and verified (number in site source code, or domain verified via Search Console or a directly placed Google tag; tag managers do not count). Vanity, premium and fax numbers are rejected. Call assets can be scheduled to business hours, are shown by an auction algorithm (not every impression), and may appear as a call button with RSAs/Smart Bidding. Call reporting uses Google forwarding numbers (Search Network only) and creates a "Call from ads" conversion.
+- **Claim:** Call numbers must be in E.164 format and verified (number in site source code, or domain verified via Search Console or a directly placed Google tag; tag managers do not count). Vanity, premium and fax numbers are rejected. Call assets can be scheduled to business hours, are shown by an auction algorithm (not every impression), and may appear as a call button with RSAs/Smart Bidding. Call reporting uses Google forwarding numbers (Search Network only) and creates a "Call from ads" conversion. **(changed 2026-04)** In the US and Canada, "Calls from ads" are judged by AI-qualified call leads from the call recording, and the minimum length is only a fallback (MKT-LOCAL-014).
 - **Evidence type:** documented
 - **Confidence:** high
 - **How it works:** A tap-to-call removes a page visit; for urgent local services this can be the dominant conversion path.

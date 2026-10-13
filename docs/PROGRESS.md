@@ -126,3 +126,9 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
   `allfix` and install the Claude GitHub App. Code lives in /mnt/project-files/allfix-app meanwhile.
 - PC: no computer linked to Elad's Claude account, so files can't be written to his folder yet.
 - Not yet run on Windows.
+
+## 2026-10-13 · Local-services knowledge
+- Added `knowledge/market/local-services.md`: 18 entries (MKT-LOCAL-001..018) on Local Services Ads, Google Business Profile and the local pack, call handling and recording, lead marketplaces and local ad policy. The evaluations and run 3 (locksmith) showed the gap.
+- Fable fact-checked every load-bearing claim against the cited pages: "Fit to load", minor corrections applied in the file.
+- Three older entries (MEA-CONV-023, PLT-ADS-019, MKT-WEB-024) said calls count by minimum length. Each now notes the 2026-04 change: in the US and Canada "Calls from ads" are judged by AI-qualified call leads, length is a fallback (MKT-LOCAL-014).
+- Knowledge base now 393 entries; README, READINESS and research-gaps updated; shared copy in /mnt/project-files/allfix-kb (index.jsonl regenerated). Tests 79 passed, 5 skipped.

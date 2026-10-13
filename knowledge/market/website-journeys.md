@@ -240,7 +240,7 @@ How to judge what happens between the ad click and a sale: landing page continui
 - **Sources:** [Use a transaction ID to minimize duplicate conversions – Google Ads Help](https://support.google.com/google-ads/answer/6386790) (checked 2026-10-13); [About conversion counting options – Google Ads Help](https://support.google.com/google-ads/answer/3438531) (checked 2026-10-13)
 
 ### MKT-WEB-024 · Calls are part of the journey: track them and check they are answered
-- **Claim:** Website call tracking with Google forwarding numbers replaces the business number dynamically and counts calls longer than a minimum length you set as conversions, attributing them to keywords and ads; limitations include only one number per page with the default tag, verification problems with third-party dynamic number insertion, and country availability.
+- **Claim:** Website call tracking with Google forwarding numbers replaces the business number dynamically and counts calls longer than a minimum length you set as conversions, attributing them to keywords and ads; limitations include only one number per page with the default tag, verification problems with third-party dynamic number insertion, and country availability. (Website calls are a separate action from "Calls from ads"; for the AI-qualified change to calls from ads in the US and Canada (changed 2026-04) see MKT-LOCAL-014.)
 - **Evidence type:** documented; practitioner (call handling)
 - **Confidence:** high (tracking); medium (handling advice)
 - **How it works:** For urgent services many visitors call instead of submitting forms; untracked calls make pages look like they fail, and unanswered calls waste paid demand.

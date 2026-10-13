@@ -52,6 +52,6 @@ Collected from each research area as it reported (2026-10-13). The search and fe
 - No real account data has been used anywhere. All evaluation cases are synthetic.
 
 ## Exposed by evaluation run 1
-- Google Business Profile, Local Services Ads (eligibility, lead pricing) and the local pack: absent.
+- Google Business Profile, Local Services Ads and the local pack: added 2026-10-13 (`market/local-services.md`). Open: LSA lead prices by trade and city, and GBP ranking factors beyond Google's own statement.
 - Lawyer advertising rules (state bar), SAT/AP calendar-type demand timing, solar sales cycles and lead-qualifying fields: absent.
 - Corrected: PLT-ADS-030 (only two Misrepresentation sub-policies are egregious; policy page re-opened 2026-10-13).
