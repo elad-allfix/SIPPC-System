@@ -38,6 +38,8 @@ MCP_PREFIX = f"mcp__{MCP_NAME}__"
 WEB_TOOLS = ["WebSearch", "WebFetch"]
 MAX_AGENT_TURNS = 60
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
+SAVING_TOOLS = {"save_item", "update_item", "update_project", "record_lesson"}
+SAVE_ALLOWANCE = 10
 
 # Environment overrides for the agent process. An empty ANTHROPIC_API_KEY makes Claude
 # Code ignore any key in the environment, so usage can't silently move to API billing.
@@ -244,10 +246,17 @@ def build_options(strategist: SubscriptionStrategist, turn: _Turn, ctx: ToolCont
 
     async def budget(input_data, tool_use_id, context):  # PreToolUse hook: cap tool calls per turn
         calls["n"] += 1
-        if calls["n"] > settings.max_tool_calls_per_turn:
-            return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
-                                           "permissionDecisionReason": BUDGET_NOTE}}
-        return {}
+        name = display_name(str((input_data or {}).get("tool_name", "")))
+        limit = settings.max_tool_calls_per_turn
+        # Research stops a little before the cap; saving stays open past it, so findings are never lost.
+        if name in SAVING_TOOLS:
+            ok = calls["n"] <= limit + SAVE_ALLOWANCE
+        else:
+            ok = calls["n"] <= limit - SAVE_ALLOWANCE // 2
+        if ok:
+            return {}
+        return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                       "permissionDecisionReason": BUDGET_NOTE}}
 
     allowed = WEB_TOOLS + [MCP_PREFIX + d["name"] for d in CLIENT_TOOLS]
     opts = ClaudeAgentOptions(

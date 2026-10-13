@@ -69,3 +69,11 @@ export interface KbHit {
   confidence?: string;
   kind?: string;
 }
+
+export interface Health {
+  ok: boolean;
+  knowledge_entries: number;
+  backend: "subscription" | "api";
+  models: Record<string, string>;
+  subscription?: { api_key_source: string | null; rate_limit: Record<string, any> | null; checked_at: string | null };
+}

@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
 from .. import store
-from ..intelligence import economics
+from ..intelligence import economics, website
 from ..knowledge import search as kb
 from .models import ModelSpec
 
@@ -175,6 +175,25 @@ CLIENT_TOOLS: list[dict] = [
         },
     },
     {
+        "name": "audit_page",
+        "description": "Audit one landing page or website page and return what is observably on it: title, "
+                       "headings, opening text, calls to action, phone links, forms and their fields, prices, "
+                       "trust-signal snippets, schema types, measurement tags (GTM, Google tag, Google Ads "
+                       "conversion, call tracking, consent mode) with a visibility note, speed and size, and "
+                       "notable internal links. Pass the search intent and, if known, the ad headline to check "
+                       "message match. Facts come from raw HTML without JavaScript: read the 'limits' and "
+                       "'measurement.visibility' fields before concluding anything is missing.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string"},
+                "intent": {"type": "string", "description": "The searcher's need, e.g. 'mobile dog grooming austin'."},
+                "ad_headline": {"type": "string", "description": "Ad headline to check message match against."},
+            },
+            "required": ["url"],
+        },
+    },
+    {
         "name": "record_lesson",
         "description": "Record a correction or lesson so future reasoning sees it. Use when a conclusion, a "
                        "recommendation or a knowledge entry turned out to be wrong. shared=true makes it apply "
@@ -266,6 +285,10 @@ async def _calculate_economics(ctx: ToolContext, args: dict) -> Any:
         raise ToolError(str(e)) from e
 
 
+async def _audit_page(ctx: ToolContext, args: dict) -> Any:
+    return await website.audit_page(str(args["url"]), args.get("intent"), args.get("ad_headline"))
+
+
 async def _record_lesson(ctx: ToolContext, args: dict) -> Any:
     lesson = await store.create_lesson(None if args.get("shared") else ctx.project_id, args)
     return {"recorded": True, "id": lesson["id"]}
@@ -279,6 +302,7 @@ HANDLERS: dict[str, Callable[[ToolContext, dict], Awaitable[Any]]] = {
     "save_item": _save_item,
     "update_item": _update_item,
     "calculate_economics": _calculate_economics,
+    "audit_page": _audit_page,
     "record_lesson": _record_lesson,
 }
 

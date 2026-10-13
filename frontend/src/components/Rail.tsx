@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Project, Stage } from "../types";
+import type { Health, Project, Stage } from "../types";
 import { ENTRY_PATH_TITLE } from "./ui";
 
 interface Props {
@@ -8,7 +8,7 @@ interface Props {
   stages: Stage[];
   stage: number;
   view: "chat" | "knowledge";
-  kbCount: number | null;
+  health: Health | null;
   dark: boolean;
   onSelectProject: (id: string) => void;
   onNewProject: () => void;
@@ -77,12 +77,30 @@ export default function Rail(p: Props) {
         <button onClick={p.onKnowledge}
           className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm ${p.view === "knowledge" ? "bg-accent-soft" : "text-muted hover:bg-sunken hover:text-fg"}`}>
           <span>Knowledge base</span>
-          {p.kbCount !== null && <span className="text-xs tabular-nums text-faint">{p.kbCount}</span>}
+          {p.health && <span className="text-xs tabular-nums text-faint">{p.health.knowledge_entries}</span>}
         </button>
+        {p.health && <Engine h={p.health} />}
         <button onClick={p.onToggleTheme} className="flex w-full items-center rounded-lg px-2 py-1.5 text-sm text-muted hover:bg-sunken hover:text-fg">
           {p.dark ? "Light theme" : "Dark theme"}
         </button>
       </div>
     </aside>
+  );
+}
+
+function Engine({ h }: { h: Health }) {
+  if (h.backend === "api") return <div className="px-2 py-1.5 text-xs text-faint" title="Claude API, billed per use">Claude API key</div>;
+  const src = h.subscription?.api_key_source;
+  const rl = h.subscription?.rate_limit;
+  const win = rl?.unifiedWindows?.five_hour?.utilization;
+  const bad = src && src !== "none";
+  const title = bad ? `Claude Code reported an API key (${src}); AllFix will not run on it.`
+    : src ? "Signed in with your Claude plan. Usage counts against your plan's limits."
+    : "Claude plan sign-in is checked on the first message.";
+  return (
+    <div className={`flex items-center justify-between px-2 py-1.5 text-xs ${bad ? "text-danger" : "text-faint"}`} title={title} data-testid="engine">
+      <span>Claude subscription{bad ? " (API key found)" : ""}</span>
+      {typeof win === "number" && <span className="tabular-nums">{Math.round(win * 100)}% of 5h</span>}
+    </div>
   );
 }

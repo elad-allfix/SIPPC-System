@@ -1,4 +1,4 @@
-import type { Conversation, Item, Project, Stage, Turn, Mode } from "./types";
+import type { Conversation, Health, Item, Project, Stage, Turn, Mode } from "./types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -17,7 +17,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  health: () => req<{ ok: boolean; knowledge_entries: number; models: Record<string, string> }>("/health"),
+  health: () => req<Health>("/health"),
   stages: () => req<Stage[]>("/stages"),
   projects: () => req<Project[]>("/projects"),
   project: (id: string) => req<Project>(`/projects/${id}`),

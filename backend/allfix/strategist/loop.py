@@ -18,8 +18,9 @@ from .tools import ToolContext, run_tool, tool_list
 log = logging.getLogger(__name__)
 
 MAX_REQUESTS_PER_TURN = 30
-BUDGET_NOTE = ("The tool budget for this turn is used up. Do not call more tools; give your answer "
-               "now from what you have, and say what you would research next.")
+BUDGET_NOTE = ("The research budget for this turn is used up. Save what you found that is worth keeping "
+               "(save_item, update_item, update_project), then give your answer from what you have and say "
+               "what you would research next. Do not start new research.")
 
 
 def build_history(rows: list[dict]) -> list[dict]:
@@ -62,6 +63,8 @@ def _summarise_input(name: str, args: dict) -> str:
             return str(args[key])[:160]
     if name == "read_knowledge":
         return ", ".join(args.get("ids", []))[:160]
+    if name == "audit_page":
+        return str(args.get("url", ""))[:160]
     if name == "calculate_economics":
         return "value per click and affordable CPC"
     if name == "get_project":
@@ -184,7 +187,7 @@ async def run_turn(client: ModelClient, project_id: str, conversation_id: str,
         for item in ctx.saved_items:
             yield {"type": "item_saved", "item": item}
         ctx.saved_items.clear()
-        if tool_calls >= _max_tool_calls() and not budget_noted:
+        if tool_calls >= _max_tool_calls() - 5 and not budget_noted:
             budget_noted = True
             await store.append_message(conversation_id, "system", [{"type": "text", "text": BUDGET_NOTE}])
     else:

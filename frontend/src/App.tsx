@@ -5,7 +5,7 @@ import KnowledgeView from "./components/KnowledgeView";
 import NewProject from "./components/NewProject";
 import Rail from "./components/Rail";
 import StagePanel from "./components/StagePanel";
-import type { Conversation, Item, Mode, Project, Stage, Turn } from "./types";
+import type { Conversation, Health, Item, Mode, Project, Stage, Turn } from "./types";
 
 const store = {
   get: (k: string) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -27,7 +27,7 @@ export default function App() {
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
-  const [kbCount, setKbCount] = useState<number | null>(null);
+  const [health, setHealth] = useState<Health | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -57,7 +57,7 @@ export default function App() {
     (async () => {
       try {
         const [h, st, ps] = await Promise.all([api.health(), api.stages(), api.projects()]);
-        setKbCount(h.knowledge_entries);
+        setHealth(h);
         setStages(st);
         setProjects(ps);
         if (ps.length === 0) { setCreating(true); return; }
@@ -163,6 +163,7 @@ export default function App() {
       const convs = await api.conversations(project.id).catch(() => null);
       if (convs) { setConversations(convs); setConversation(convs.find((c) => c.id === conv!.id) ?? conv); }
       await refreshProject(project.id).catch(() => undefined);
+      api.health().then(setHealth).catch(() => undefined);
     }
   };
 
@@ -190,7 +191,7 @@ export default function App() {
 
   return (
     <div className="flex h-full">
-      <Rail projects={projects} project={project} stages={stages} stage={stage} view={view} kbCount={kbCount} dark={dark}
+      <Rail projects={projects} project={project} stages={stages} stage={stage} view={view} health={health} dark={dark}
         onSelectProject={(id) => { setView("chat"); openProject(id); }}
         onNewProject={() => setCreating(true)}
         onSelectStage={(n) => { setView("chat"); setStage(n); }}
