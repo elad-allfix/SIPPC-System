@@ -227,3 +227,9 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 - Fix: a "Before you send" self-check in the prompt (text matches tables and tool results, sums, caps, reachable stop rules, exact [verified] labels, data limits where they change the conclusion) and, for new niches, structure and budgets only after demand and results-page research.
 - Recheck of 8 cases (/mnt/project-files/allfix-kb/evals/runs/app-run-2026-10-14-recheck/GRADING.md): every regression above fixed; all sums, caps and arithmetic correct; 53 cited ids exist. Verdicts unchanged (6 PASS, EV-01 and EV-03 PARTIAL); all-lines 37/9/0 vs 33/12/1. Answers 12% longer, substantive. The data-limits line was showing up as boilerplate in 5 of 8 answers, so it is now asked for only where it changes the conclusion (not rerun).
 - Still open on purpose: EV-01's "how to fix" caveat and similar case-specific items; adding them would tune the strategist to self-written cases.
+
+## 2026-10-14 · Navigation and first projects in Elad's AllFix
+- Elad: the Dashboard said there were no projects and would not open; he wants Back on every page.
+- Dashboard always opens; with no projects it shows an empty state with New project. Back on the entrance choice screen, on every setup question (the first goes back to where setup was opened), and an arrow plus the logo in the top bar return to the entrance. Library closes back to chat. Checked by clicking through in a browser.
+- His Supabase had 0 projects: every earlier run used a throwaway local database. The 13 Oct test runs (6) and the 14 Oct account check are being imported as projects from the saved run logs (answers verbatim, items from the logs; data fields cut short in the logs are kept as text). Projects are named "(test run)"; the account project notes that the raw CSVs stay on his PC.
+
