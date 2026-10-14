@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import json
 from typing import Any
 from uuid import UUID
@@ -66,6 +68,74 @@ async def list_projects() -> list[dict]:
     return _clean_all(await db.fetch_all(
         """select p.*, (select count(*) from items i where i.project_id = p.id) as item_count
            from projects p order by p.updated_at desc"""))
+
+
+def is_due(item: dict, today: date | None = None) -> bool:
+    """An open forecast or experiment whose review date has passed and that has no outcome yet."""
+    data = item.get("data") or {}
+    if item.get("kind") not in ("forecast", "experiment") or item.get("status", "open") != "open" or data.get("outcome"):
+        return False
+    try:
+        return date.fromisoformat(str(data.get("review_after"))) <= (today or date.today())
+    except ValueError:
+        return False
+
+
+async def overview() -> list[dict]:
+    """Every project with its main details and what it needs next, for the projects page.
+    Deterministic: built from the saved items, files and conversations, no model call, nothing invented."""
+    projects = _clean_all(await db.fetch_all(
+        """select p.*,
+                  (select count(*) from project_files f where f.project_id = p.id) as file_count,
+                  (select count(*) from conversations c where c.project_id = p.id
+                     and exists (select 1 from messages m where m.conversation_id = c.id)) as conversation_count,
+                  greatest(p.updated_at,
+                           (select max(c.updated_at) from conversations c where c.project_id = p.id),
+                           (select max(f.created_at) from project_files f where f.project_id = p.id),
+                           (select max(i.updated_at) from items i where i.project_id = p.id)) as last_activity
+           from projects p order by p.updated_at desc"""))
+    counts = await db.fetch_all(
+        """select project_id, stage, kind, count(*) as n from items where status <> 'superseded'
+           group by project_id, stage, kind""")
+    # Only the kinds that can become a need, and only open ones: small even with many items.
+    open_items = _clean_all(await db.fetch_all(
+        """select project_id, kind, title, label, status, data from items
+           where status = 'open' and kind in ('forecast', 'experiment', 'question', 'website_issue', 'risk', 'decision')
+           order by created_at desc"""))
+    by_kind: dict[str, dict[str, int]] = {}
+    stages: dict[str, set] = {}
+    for r in counts:
+        pid = str(r["project_id"])
+        by_kind.setdefault(pid, {})
+        by_kind[pid][r["kind"]] = by_kind[pid].get(r["kind"], 0) + r["n"]
+        stages.setdefault(pid, set()).add(r["stage"])
+    by_project: dict[str, list[dict]] = {}
+    for i in open_items:
+        by_project.setdefault(i["project_id"], []).append(i)
+    today = date.today()
+    out = []
+    for p in projects:
+        mine = by_project.get(p["id"], [])
+        of = lambda *kinds: [i for i in mine if i["kind"] in kinds]  # noqa: E731
+        firm = lambda i: i["label"] in ("verified", "observed")  # noqa: E731
+        needs: list[dict] = []
+        if not p["conversation_count"]:
+            needs.append({"kind": "do", "text": "Run the account check on the report exports" if p["entry_path"] == "ads_account"
+                          else "Start the first research conversation"})
+        if p["entry_path"] == "ads_account" and not p["file_count"]:
+            needs.append({"kind": "do", "text": "Upload the account's report exports"})
+        if p["entry_path"] != "new_niche" and not p.get("website_url"):
+            needs.append({"kind": "do", "text": "Add the website address"})
+        needs += [{"kind": "fix", "text": i["title"]} for i in of("website_issue") if firm(i)]
+        needs += [{"kind": "risk", "text": i["title"]} for i in of("risk") if firm(i)][:1]
+        needs += [{"kind": "check", "text": f"Due for a check: {i['title']}"} for i in mine if is_due(i, today)]
+        needs += [{"kind": "answer", "text": i["title"]} for i in of("question")]
+        plan = next(iter(of("decision")), None)
+        kinds = by_kind.get(p["id"], {})
+        out.append({**p, "item_counts": kinds, "item_total": sum(kinds.values()),
+                    "stages_with_items": sorted(stages.get(p["id"], set())),
+                    "plan": plan["title"] if plan else None, "needs": needs[:4], "needs_total": len(needs)})
+    return out
 
 
 async def create_project(data: dict) -> dict:

@@ -25,6 +25,18 @@ export interface Project {
   stage_counts?: Record<string, Record<string, number>>;
 }
 
+export interface ProjectCard extends Project {
+  file_count: number;
+  conversation_count: number;
+  last_activity: string | null;
+  item_counts: Record<string, number>;
+  item_total: number;
+  needs_total: number;
+  stages_with_items: number[];
+  plan: string | null;
+  needs: { kind: "do" | "check" | "answer" | "fix" | "risk"; text: string }[];
+}
+
 export interface Source { url?: string; title?: string; note?: string; kb?: string; checked?: string }
 
 export interface Item {

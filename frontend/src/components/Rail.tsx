@@ -15,29 +15,33 @@ function stageTotal(p: Project | null, n: number): number {
 interface TopProps {
   projects: Project[];
   project: Project | null;
-  view: "chat" | "knowledge";
+  view: "overview" | "chat" | "knowledge";
   health: Health | null;
   onSelectProject: (id: string) => void;
   onNewProject: () => void;
   onKnowledge: () => void;
-  onHome: () => void;
+  /** One level up: project or library to the projects page, the projects page to the entrance. */
+  onBack: () => void;
+  onAllProjects: () => void;
 }
 
-/** Dark top bar: logo, project switcher, library, and one status dot for Claude. */
+/** Dark top bar: back, logo (all projects), project switcher, library, and one status dot for Claude. */
 export function TopBar(p: TopProps) {
   const [open, setOpen] = useState(false);
+  const back = p.view === "overview" ? "Back to the entrance" : p.view === "knowledge" ? "Close the library" : "All projects";
   return (
     <header className="flex items-center gap-3 px-1">
       <div className="flex w-[13.25rem] shrink-0 items-center gap-2 max-md:w-auto">
-        <button onClick={p.onHome} aria-label="Back to the entrance" title="Back to the entrance" data-testid="home"
+        <button onClick={p.onBack} aria-label={back} title={back} data-testid="home"
           className="grid h-9 w-9 place-items-center rounded-full border border-line text-faint hover:text-fg">←</button>
-        <button onClick={p.onHome} className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight">
+        <button onClick={p.onAllProjects} title="All projects" data-testid="logo" className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight">
           <span className="h-6 w-6 rounded-[7px] shadow-[inset_0_1px_0_rgba(255,255,255,.35)]"
             style={{ background: "linear-gradient(145deg, var(--accent), #b86d0c)" }} />
           AllFix
         </button>
       </div>
 
+      {p.view === "overview" ? <span className="text-sm font-semibold text-faint">All projects</span> : (
       <div className="relative min-w-0">
         <button onClick={() => setOpen((o) => !o)} data-testid="project-switcher"
           className="flex min-w-0 items-center gap-2 rounded-full border border-line bg-panel px-4 py-2 text-sm font-semibold hover:bg-sunken">
@@ -46,6 +50,10 @@ export function TopBar(p: TopProps) {
         </button>
         {open && (
           <div className="absolute left-0 z-30 mt-2 max-h-80 w-72 overflow-auto rounded-2xl border border-line bg-panel p-1.5 shadow-2xl scroll-thin">
+            <button onClick={() => { setOpen(false); p.onAllProjects(); }} data-testid="all-projects"
+              className="mb-1 block w-full rounded-xl border-b border-line px-3 py-2 text-left text-sm font-semibold hover:bg-sunken">
+              All projects
+            </button>
             {p.projects.map((pr) => (
               <button key={pr.id} onClick={() => { setOpen(false); p.onSelectProject(pr.id); }}
                 className={`block w-full truncate rounded-xl px-3 py-2 text-left text-sm hover:bg-sunken ${pr.id === p.project?.id ? "font-semibold text-accent" : ""}`}>
@@ -59,6 +67,7 @@ export function TopBar(p: TopProps) {
           </div>
         )}
       </div>
+      )}
 
       <div className="ml-auto flex items-center gap-3">
         <button onClick={p.onKnowledge}
@@ -90,7 +99,7 @@ interface StepProps {
   project: Project | null;
   stages: Stage[];
   stage: number;
-  view: "chat" | "knowledge";
+  view: "overview" | "chat" | "knowledge";
   onSelectStage: (n: number) => void;
 }
 

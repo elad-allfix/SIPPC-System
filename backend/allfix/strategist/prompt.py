@@ -271,10 +271,7 @@ async def project_brief(project_id: str) -> str:
                      + ", no import yet.")
     else:
         lines.append("Google Ads account: not connected.")
-    from datetime import date as _date
-    due = [it for it in items if it["kind"] in ("forecast", "experiment") and it["status"] == "open"
-           and not (it.get("data") or {}).get("outcome")
-           and str((it.get("data") or {}).get("review_after") or "9999") <= str(_date.today())]
+    due = [it for it in items if store.is_due(it)]
     if due:
         lines.append("Forecasts and experiments due for review (score these first):")
         lines += [f"- {it['kind']}: {it['title']} (id {it['id']}, review_after {it['data'].get('review_after')})"

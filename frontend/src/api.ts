@@ -1,4 +1,4 @@
-import type { Connectivity, FileRef, ConnectionProfile, Conversation, Health, Item, Project, Stage, Turn, Mode, Run, Verification } from "./types";
+import type { Connectivity, FileRef, ConnectionProfile, Conversation, Health, Item, Project, ProjectCard, Stage, Turn, Mode, Run, Verification } from "./types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -20,6 +20,7 @@ export const api = {
   health: () => req<Health>("/health"),
   stages: () => req<Stage[]>("/stages"),
   projects: () => req<Project[]>("/projects"),
+  overview: () => req<ProjectCard[]>("/overview"),
   project: (id: string) => req<Project>(`/projects/${id}`),
   createProject: (body: Partial<Project>) => req<Project>("/projects", { method: "POST", body: JSON.stringify(body) }),
   updateProject: (id: string, body: Partial<Project>) =>

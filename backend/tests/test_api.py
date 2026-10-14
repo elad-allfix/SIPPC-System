@@ -70,3 +70,41 @@ def test_chat_without_api_key_reports_setup_error():
         conv = client.post(f"/api/projects/{p['id']}/conversations", json={}).json()
         evs = _events(client.post(f"/api/conversations/{conv['id']}/chat", json={"message": "hi"}))
         assert evs[0]["type"] == "error" and "ANTHROPIC_API_KEY" in evs[0]["message"]
+
+
+def test_overview_lists_projects_with_needs():
+    client, _ = _client([
+        ([tool("t1", "save_item", {"kind": "question", "title": "What is the close rate?", "label": "unknown", "body": "-", "confidence": "low"}),
+          tool("t2", "save_item", {"kind": "decision", "title": "Fix tracking first", "label": "hypothesis", "body": "-", "confidence": "medium"}),
+          tool("t3", "save_item", {"kind": "forecast", "title": "10-20 leads in month 1", "label": "hypothesis",
+                                   "body": "-", "confidence": "low", "data": {"review_after": "2000-01-01", "prediction": "10-20", "metric": "leads"}})], "tool_use"),
+        ([text("Saved.")], "end_turn"),
+    ])
+    with client:
+        empty = client.post("/api/projects", json={"name": "Empty", "entry_path": "ads_account"}).json()
+        p = client.post("/api/projects", json={"name": "Busy", "entry_path": "new_niche"}).json()
+        conv = client.post(f"/api/projects/{p['id']}/conversations", json={}).json()
+        client.post(f"/api/conversations/{conv['id']}/chat", json={"message": "go"})
+        cards = {c["name"]: c for c in client.get("/api/overview").json()}
+        assert set(cards) == {"Empty", "Busy"}
+        e = cards["Empty"]
+        assert e["item_total"] == 0 and e["plan"] is None and e["file_count"] == 0
+        assert [n["text"] for n in e["needs"]] == [
+            "Run the account check on the report exports", "Upload the account's report exports", "Add the website address"]
+        b = cards["Busy"]
+        assert b["plan"] == "Fix tracking first" and b["item_total"] == 3 and b["conversation_count"] == 1
+        assert [n["kind"] for n in b["needs"]] == ["check", "answer"] and b["needs_total"] == 2
+        assert b["item_counts"]["question"] == 1 and b["stages_with_items"]
+
+
+def test_is_due():
+    from datetime import date
+    from allfix.store import is_due
+    t = date(2026, 10, 14)
+    f = lambda **d: {"kind": "forecast", "status": "open", "data": d}  # noqa: E731
+    assert is_due(f(review_after="2026-10-14"), t)
+    assert not is_due(f(review_after="2026-10-15"), t)
+    assert not is_due(f(review_after="2026-10-01", outcome={"verdict": "hit"}), t)
+    assert not is_due(f(review_after="not a date"), t) and not is_due(f(), t)
+    assert is_due({"kind": "experiment", "status": "open", "data": {"review_after": "20261001"}}, t)
+    assert not is_due({**f(review_after="2026-10-01"), "status": "done"}, t)
