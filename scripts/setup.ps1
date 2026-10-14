@@ -120,7 +120,7 @@ if ($dbUrl -match 'localhost|127\.0\.0\.1') {
       $ErrorActionPreference = "Continue"
       $out = (& $psql -U postgres -h localhost -c "create user allfix password 'allfix'" 2>&1) -join "`n"
       Write-Host $out
-      if ($out -match 'FATAL|could not connect') {
+      if ($out -match 'FATAL|failed|could not connect|no password') {
         Write-Host "Could not sign in to your local PostgreSQL." -ForegroundColor Yellow
         $ErrorActionPreference = "Stop"
         Use-Supabase
