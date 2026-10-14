@@ -251,3 +251,9 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 
 ## 2026-10-14 · Projects page in the Ignition style
 - Elad picked style 2 "Ignition" from the three mockups (artifact 1dXCCuQ4F5gKRvTsEifWno). The projects page is now all dark with the entrance's orbits behind it: one line naming the project that needs him first (real projects before test runs, then the most severe need: fix, risk, do, check, answer) with that need underneath, three numbers (projects, fix or risk, your answers) and New project; that project's card glows; each card shows its place, a Test tag for test runs, the open-needs count, the 7-stage track, its single most urgent need, the other needs as chips, and the plan.
+
+## 2026-10-14 · Eval check of the fix round, prompt tightened
+- Ran EV-01, 03, 08, 12, 13, 15 and the new EV-16 (standard and Deep), graded blind by Fable: 18/20 critical lines, 6 pass, 2 partial (EV-03, EV-13). Grading: /mnt/project-files/allfix-kb/evals/runs/app-run-2026-10-14-audit-fixes/GRADING.md.
+- What the new rules fixed: no live bid reversal on assumed economics, business model asked first, hidden search terms not called waste.
+- Regressions found and addressed in the prompt: a stop rule above a manual-bid cap (unreachable) is now checked before sending; affordable CPCs print their economics inputs; [verified] only for sources opened in the conversation, unexplained thresholds labelled a rule of thumb or dropped; at most five actions saved, one question per item, no list of saved items in the answer.
+- Not re-run yet: EV-13 and EV-08 to confirm the prompt fixes.
