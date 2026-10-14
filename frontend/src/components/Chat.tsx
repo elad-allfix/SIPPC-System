@@ -248,7 +248,7 @@ export default function Chat(p: Props) {
               ))}
               {uploading > 0 && <span className="text-xs text-faint">Uploading… big exports take a minute</span>}
               {uploadError && <span className="text-xs text-danger">{uploadError}</span>}
-              {uploadNotes.map((n) => <span key={n} className="w-full text-xs text-faint">{n}</span>)}
+              {uploadNotes.map((n, i) => <span key={i} className="w-full text-xs text-faint">{n}</span>)}
             </div>
           )}
           <textarea ref={boxRef} value={p.draft} rows={1} data-testid="chat-input"

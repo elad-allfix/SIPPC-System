@@ -157,6 +157,12 @@ def test_group_by_and_where():
     with pytest.raises(ValueError):
         tables.query(t, where=["Cost is big"])
     assert "hidden searches" in tables.query(t)["totals_note"]  # rows sum below Total: Account
+    assert tables.query(t, group_by="Clicks", sort_by="rows")["groups"][0]["Clicks"] in ("30", "20", "8", "0")
+    with pytest.raises(ValueError):
+        tables.query(t, group_by="Campaign", sort_by="Search term")
+    dashes = tables.parse(TERMS.replace(b"locksmith calgary,Calgary,0,12,0.00,0.00", b"locksmith calgary,Calgary,--,12,0.00,--"))
+    assert len(tables.query(dashes, where=["Clicks = 0"])["rows"]) == 1
+    assert len(tables.query(t, where=["Cost >= 1.000,50"])["rows"]) == 0
     assert tables.number("Max. CPC") is None and tables.NON_ADDITIVE.search("Default max. bid")
 
 

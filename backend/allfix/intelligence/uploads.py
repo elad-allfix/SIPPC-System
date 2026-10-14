@@ -67,6 +67,8 @@ def _load(f: dict) -> tables.Table | str:
         parsed: tables.Table | str = tables.parse(f["content"])
     except (ValueError, csv.Error):
         parsed = tables.decode(f["content"])
+    except (OSError, EOFError):  # a damaged compressed copy
+        parsed = "This stored file is damaged and cannot be read. Ask the user to upload it again."
     _parsed[key] = parsed
     while len(_parsed) > 8:
         _parsed.popitem(last=False)

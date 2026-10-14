@@ -288,7 +288,10 @@ def _filters(table: Table, where: list[str]) -> list[tuple[int, Any, float]]:
         m = _WHERE.match(w)
         if not m:
             raise ValueError(f"cannot read the filter {w!r}; write it like 'Cost > 50' or 'Conversions = 0'")
-        out.append((_column(table, m.group(1)), _OPS[m.group(2)], float(m.group(3).replace(",", ""))))
+        v = number(m.group(3))
+        if v is None:
+            raise ValueError(f"cannot read the number in {w!r}")
+        out.append((_column(table, m.group(1)), _OPS[m.group(2)], v))
     return out
 
 
@@ -301,7 +304,8 @@ def query(table: Table, contains: str | None = None, sort_by: str | None = None,
         needle = contains.lower()
         rows = [r for r in rows if any(needle in c.lower() for c in r)]
     for k, op, v in _filters(table, where or []):
-        rows = [r for r in rows if (x := number(r[k])) is not None and op(x, v)]
+        # "--" is Google Ads' empty cell: no clicks, no conversions
+        rows = [r for r in rows if (x := 0.0 if r[k].strip() in EMPTY else number(r[k])) is not None and op(x, v)]
     add = additive_columns(table, rows)
     totals = {table.columns[i]: round(sum(number(r[i]) or 0 for r in rows), 2) for i in add}
     limit = max(1, min(int(limit), MAX_LIMIT))
@@ -317,6 +321,7 @@ def query(table: Table, contains: str | None = None, sort_by: str | None = None,
     }
     if group_by:
         g = _column(table, group_by)
+        add = [i for i in add if i != g]
         groups: dict[str, list[float]] = {}
         for r in rows:
             acc = groups.setdefault(r[g], [0.0] * (len(add) + 1))
@@ -324,8 +329,11 @@ def query(table: Table, contains: str | None = None, sort_by: str | None = None,
             for j, i in enumerate(add, 1):
                 acc[j] += number(r[i]) or 0
         names = ["rows"] + [table.columns[i] for i in add]
+        cost = _find(table.columns, COST)
         want = ("rows" if sort_by.strip().lower() == "rows" else table.columns[_column(table, sort_by)]) if sort_by \
-            else ("Cost" if "Cost" in names else None)
+            else (table.columns[cost] if cost is not None else None)
+        if sort_by and want not in names:
+            raise ValueError(f"with group_by, sort_by must be one of {names}")
         key = names.index(want) if want in names else min(1, len(names) - 1)
         ordered = sorted(groups.items(), key=lambda kv: kv[1][key], reverse=descending)
         out["groups_total"] = len(ordered)
