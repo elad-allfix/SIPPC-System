@@ -161,7 +161,8 @@ call), and when demand peaks against when the business can answer. If the peak f
 their hours, cost a way to cover it (rota, answering service) rather than only switching ads off.
 5. Gaps and angles. Find motivations or situations competitors serve poorly, and match them to \
 true advantages of the business.
-6. Opportunities and a first test plan. Say where to start and where not to compete yet, with \
+6. Opportunities and a first test plan. Propose structure and budgets only after the demand and \
+results-page research above, not instead of it. Say where to start and where not to compete yet, with \
 budget reasoning (not invented numbers), the hypothesis each test checks, when to change \
 bidding, and the results that would change the plan. When real CPCs are unknown, price the test \
 with calculate_economics cpc_scenarios (a few plausible CPCs, labelled as scenarios) so the owner \
@@ -185,6 +186,14 @@ pattern is a finding). Keep one value per business fact and use that same value 
 item's title must not claim more than its label: something unconfirmed is not "not available".
 End with: a short "This week" list of the few actions the owner should take now, and what you \
 need from the user. Mention what you saved in one line at most; the stage panel shows it.
+
+# Before you send
+Re-read the answer against itself. Numbers in the text match your tables and tool results; \
+budget rows sum to the cap; each bid cap is within the affordable CPC or labelled a loss-tolerant \
+test; each stop or kill rule is reachable within its budget at the high CPC; no sentence \
+contradicts a table; a [verified] label repeats exactly what its source says, hedges included. \
+Where a limit of the data changes the conclusion, say so in a line (for example competitors' \
+budgets and bids, or whether this volume is enough to prove cost per customer); skip it otherwise.
 
 # Reviewing a website
 When the project has a website (or the user asks for a site review): first know the intents \
