@@ -11,6 +11,9 @@ const TOOL_VERB: Record<string, string> = {
 };
 
 const ACCEPT = ".csv,.tsv,.txt,.png,.jpg,.jpeg,.webp,.gif";
+const ACCOUNT_CHECK = "Account check: read every attached report. First say what each file covers (report type, " +
+  "date range, its own totals) and whether conversion tracking can be trusted. Then give one verdict line, " +
+  "the 3 numbers that matter most, and the top 5 actions in order. Mark each number as observed from a file or estimated.";
 // The strategist reads attachments by id; the line is shown as a chip, not as text.
 const ATTACHED = /^\[Attached: (.+) \(file ([0-9a-f-]{36})\)\]$/;
 
@@ -138,14 +141,21 @@ export default function Chat(p: Props) {
   const [attached, setAttached] = useState<FileRef[]>([]);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState("");
+  const [uploadNote, setUploadNote] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const checkRef = useRef<HTMLInputElement>(null);
 
   const upload = async (files: File[]) => {
     setUploadError("");
+    setUploadNote("");
+    const done: FileRef[] = [];
     for (const f of files) {
       setUploading((n) => n + 1);
       try {
         const ref = await api.uploadFile(p.project.id, f);
+        done.push(ref);
+        if (ref.note) setUploadNote(`${f.name}: ${ref.note}`);
         setAttached((a) => [...a, ref]);
       } catch (e) {
         setUploadError(`${f.name}: ${(e as Error).message}`);
@@ -153,6 +163,17 @@ export default function Chat(p: Props) {
         setUploading((n) => n - 1);
       }
     }
+    return done;
+  };
+
+  // Account check: pick the account's report exports, upload them, and ask for one verdict,
+  // 3 numbers and the top 5 actions.
+  const accountCheck = async (files: File[]) => {
+    const done = await upload(files);
+    const all = [...attached, ...done];
+    if (all.length === 0 || p.busy) return;
+    p.onSend([ACCOUNT_CHECK, ...all.map(attachedLine)].join("\n"), mode);
+    setAttached([]);
   };
 
   const send = () => {
@@ -162,6 +183,7 @@ export default function Chat(p: Props) {
     p.onSend([text || "I attached a file.", ...lines].join("\n"), mode);
     setAttached([]);
     setUploadError("");
+    setUploadNote("");
   };
 
   return (
@@ -214,7 +236,7 @@ export default function Chat(p: Props) {
 
       <div className="px-6 pb-6 pt-2">
         <div className="mx-auto max-w-3xl rounded-[22px] border border-line bg-panel p-2.5 shadow-[0_12px_30px_-18px_rgba(22,23,26,.35)] focus-within:border-accent">
-          {(attached.length > 0 || uploading > 0 || uploadError) && (
+          {(attached.length > 0 || uploading > 0 || uploadError || uploadNote) && (
             <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1.5">
               {attached.map((f) => (
                 <span key={f.id} className="flex items-center gap-1 rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">
@@ -225,6 +247,7 @@ export default function Chat(p: Props) {
               ))}
               {uploading > 0 && <span className="text-xs text-faint">Uploading…</span>}
               {uploadError && <span className="text-xs text-danger">{uploadError}</span>}
+              {uploadNote && <span className="text-xs text-faint">{uploadNote}</span>}
             </div>
           )}
           <textarea ref={boxRef} value={p.draft} rows={1} data-testid="chat-input"
@@ -245,6 +268,13 @@ export default function Chat(p: Props) {
               title="Attach a CSV/TSV report export or a screenshot (you can also paste a screenshot)"
               className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-fg">
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M15.5 9.5l-5.8 5.8a3.5 3.5 0 01-5-5l6.4-6.4a2.3 2.3 0 013.3 3.3l-6.3 6.3a1.2 1.2 0 01-1.7-1.7L12 6.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
+            <input ref={checkRef} type="file" multiple accept=".csv,.tsv,.txt" className="hidden" data-testid="check-input"
+              onChange={(e) => { accountCheck(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+            <button onClick={() => checkRef.current?.click()} disabled={p.busy || uploading > 0} data-testid="account-check"
+              title="Upload Google Ads report exports (campaigns, search terms, keywords, ads, conversions) and get one verdict, 3 numbers and the top 5 actions"
+              className="rounded-full border border-line px-3 py-1 text-xs text-muted hover:bg-sunken hover:text-fg disabled:opacity-40">
+              Account check
             </button>
             <div className="flex rounded-full bg-sunken p-0.5 text-xs" role="radiogroup" aria-label="Mode">
               {(["standard", "deep"] as Mode[]).map((m) => (

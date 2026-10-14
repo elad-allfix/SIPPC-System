@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import csv
 from collections import OrderedDict
 from pathlib import PurePath
 from typing import Any
 
 from . import tables
 
-MAX_BYTES = 10 * 1024 * 1024
+MAX_BYTES = 200 * 1024 * 1024  # what may be uploaded; big report exports are reduced on arrival
+STORE_BYTES = 20 * 1024 * 1024  # what is kept in the database per table
 MAX_IMAGE_BYTES = 5 * 1024 * 1024  # the model's own limit per image
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
                ".gif": "image/gif"}
@@ -42,6 +44,19 @@ def check(name: str, size: int) -> str:
     return mime
 
 
+def prepare(mime: str, data: bytes) -> tuple[str, bytes, str | None]:
+    """(mime, bytes to store, note) for an accepted upload: a table over STORE_BYTES is reduced
+    to the rows that matter, with a note saying what was kept."""
+    if mime.startswith("image/") or len(data) <= STORE_BYTES:
+        return mime, data, None
+    try:
+        reduced, note = tables.reduce(data, STORE_BYTES)
+    except (ValueError, StopIteration, csv.Error):
+        raise UploadRefused(f"The file is larger than {STORE_BYTES // (1024 * 1024)} MB and is not a table "
+                            "AllFix can reduce. Export a shorter date range or fewer columns.")
+    return "text/csv", reduced, note
+
+
 def _load(f: dict) -> tables.Table | str:
     key = f["id"]
     if key in _parsed:
@@ -49,7 +64,7 @@ def _load(f: dict) -> tables.Table | str:
         return _parsed[key]
     try:
         parsed: tables.Table | str = tables.parse(f["content"])
-    except ValueError:
+    except (ValueError, csv.Error):
         parsed = tables.decode(f["content"])
     _parsed[key] = parsed
     while len(_parsed) > 8:

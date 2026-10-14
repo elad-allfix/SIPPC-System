@@ -139,4 +139,5 @@ export interface FileRef {
   mime: string;
   size_bytes: number;
   created_at: string;
+  note?: string; // set when a large export was reduced on arrival
 }
