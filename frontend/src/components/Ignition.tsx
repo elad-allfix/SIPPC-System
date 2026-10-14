@@ -49,10 +49,10 @@ function Orbits({ dim = false }: { dim?: boolean }) {
 
 /** The front door: the name, one line, one button; then the choice between a new project and
  * the dashboard (the projects already there). */
-export function Entrance({ projects, onNew, onDashboard }: {
-  projects: Project[]; onNew: () => void; onDashboard: () => void;
+export function Entrance({ projects, onNew, onDashboard, startChoosing = false }: {
+  projects: Project[]; onNew: () => void; onDashboard: () => void; startChoosing?: boolean;
 }) {
-  const [choosing, setChoosing] = useState(false);
+  const [choosing, setChoosing] = useState(startChoosing);
   const latest = projects[0];
   return (
     <div className="frame relative grid h-full place-items-center overflow-auto bg-[#0a0b0d] px-4 text-center text-fg">
@@ -68,6 +68,7 @@ export function Entrance({ projects, onNew, onDashboard }: {
         </div>
       ) : (
         <div className="relative z-10 flex w-full max-w-[760px] flex-col items-center gap-8 py-12">
+          <BackButton onClick={() => setChoosing(false)} testid="back-to-door" />
           <div className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight">
             <span className="h-6 w-6 rounded-[7px] shadow-[inset_0_1px_0_rgba(255,255,255,.35)]"
               style={{ background: "linear-gradient(145deg, var(--accent), #b86d0c)" }} />
@@ -82,7 +83,7 @@ export function Entrance({ projects, onNew, onDashboard }: {
                 <span className="mt-1 block text-sm text-faint">Four quick questions</span>
               </span>
             </button>
-            <button onClick={onDashboard} disabled={!latest} data-testid="choose-dashboard"
+            <button onClick={onDashboard} data-testid="choose-dashboard"
               className="flex min-h-56 flex-col justify-between rounded-3xl border border-line bg-panel p-7 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:border-faint disabled:opacity-50">
               <span className="grid h-12 w-12 place-items-center rounded-full border border-line font-mono text-sm text-faint">
                 {projects.length}
@@ -90,7 +91,7 @@ export function Entrance({ projects, onNew, onDashboard }: {
               <span>
                 <b className="block text-2xl font-bold tracking-[-0.03em]">Dashboard</b>
                 <span className="mt-1 block truncate text-sm text-faint">
-                  {latest ? `${projects.length === 1 ? "1 project" : `${projects.length} projects`} · ${latest.name}` : "No projects yet"}
+                  {latest ? `${projects.length === 1 ? "1 project" : `${projects.length} projects`} · ${latest.name}` : "Empty for now · open it anyway"}
                 </span>
               </span>
             </button>
@@ -112,9 +113,19 @@ const GOALS: { v: ObjectiveType; title: string }[] = [
 ];
 const input = "w-full rounded-[14px] border border-line bg-panel px-4 py-3.5 text-[15px] outline-none placeholder:text-[#5b5e67] focus:border-accent";
 
+/** Top-left Back on the full-screen pages. */
+export function BackButton({ onClick, testid }: { onClick: () => void; testid?: string }) {
+  return (
+    <button onClick={onClick} data-testid={testid}
+      className="fixed left-5 top-5 z-20 flex items-center gap-1.5 rounded-full border border-line bg-[#0a0b0d]/80 px-4 py-2 text-sm text-faint backdrop-blur hover:text-fg">
+      <span aria-hidden>←</span> Back
+    </button>
+  );
+}
+
 /** New project as four short full-screen questions instead of a form. */
-export function Setup({ onCreate, onCancel, canCancel }: {
-  onCreate: (p: Partial<Project>) => Promise<void>; onCancel: () => void; canCancel: boolean;
+export function Setup({ onCreate, onCancel }: {
+  onCreate: (p: Partial<Project>) => Promise<void>; onCancel: () => void;
 }) {
   const [step, setStep] = useState(0);
   const [f, setF] = useState<Partial<Project>>({ entry_path: "new_niche", objective_type: "profit" });
@@ -141,9 +152,7 @@ export function Setup({ onCreate, onCancel, canCancel }: {
   return (
     <div className="frame relative flex h-full items-center justify-center overflow-auto bg-[#0a0b0d] px-4 text-fg" data-testid="new-project" onKeyDown={onKey}>
       <Orbits dim />
-      {canCancel && (
-        <button onClick={onCancel} aria-label="Close" className="absolute right-5 top-5 z-20 grid h-10 w-10 place-items-center rounded-full border border-line text-faint hover:text-fg">×</button>
-      )}
+      <BackButton onClick={step > 0 ? () => setStep(step - 1) : onCancel} testid="setup-back" />
       <div className="relative z-10 flex w-full max-w-[640px] flex-col gap-6 py-12">
         <div className="flex gap-1.5" aria-hidden>
           {[0, 1, 2, 3].map((i) => <i key={i} className={`h-1 w-6 rounded-sm ${i <= step ? "bg-accent" : "bg-line"}`} />)}

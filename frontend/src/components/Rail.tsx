@@ -20,6 +20,7 @@ interface TopProps {
   onSelectProject: (id: string) => void;
   onNewProject: () => void;
   onKnowledge: () => void;
+  onHome: () => void;
 }
 
 /** Dark top bar: logo, project switcher, library, and one status dot for Claude. */
@@ -27,10 +28,14 @@ export function TopBar(p: TopProps) {
   const [open, setOpen] = useState(false);
   return (
     <header className="flex items-center gap-3 px-1">
-      <div className="flex w-[13.25rem] shrink-0 items-center gap-2.5 text-xl font-extrabold tracking-tight max-md:w-auto">
-        <span className="h-6 w-6 rounded-[7px] shadow-[inset_0_1px_0_rgba(255,255,255,.35)]"
-          style={{ background: "linear-gradient(145deg, var(--accent), #b86d0c)" }} />
-        AllFix
+      <div className="flex w-[13.25rem] shrink-0 items-center gap-2 max-md:w-auto">
+        <button onClick={p.onHome} aria-label="Back to the entrance" title="Back to the entrance" data-testid="home"
+          className="grid h-9 w-9 place-items-center rounded-full border border-line text-faint hover:text-fg">←</button>
+        <button onClick={p.onHome} className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight">
+          <span className="h-6 w-6 rounded-[7px] shadow-[inset_0_1px_0_rgba(255,255,255,.35)]"
+            style={{ background: "linear-gradient(145deg, var(--accent), #b86d0c)" }} />
+          AllFix
+        </button>
       </div>
 
       <div className="relative min-w-0">
@@ -58,7 +63,7 @@ export function TopBar(p: TopProps) {
       <div className="ml-auto flex items-center gap-3">
         <button onClick={p.onKnowledge}
           className={`rounded-full px-3.5 py-1.5 text-sm ${p.view === "knowledge" ? "bg-panel text-fg" : "text-faint hover:text-fg"}`}>
-          Library
+          {p.view === "knowledge" ? "← Close library" : "Library"}
         </button>
         {p.health && <Status h={p.health} />}
       </div>

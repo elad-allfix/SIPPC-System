@@ -25,6 +25,10 @@ export default function App() {
   const [creating, setCreating] = useState(false);
   // The entrance shows once per browser tab session; after Enter the user picks a new project or the dashboard.
   const [entered, setEntered] = useState(() => { try { return sessionStorage.getItem("allfix.entered") === "1"; } catch { return false; } });
+  // Where Back from setup goes: the entrance's choice screen or the dashboard.
+  const [setupFrom, setSetupFrom] = useState<"entrance" | "app">("app");
+  const [choosing, setChoosing] = useState(false);
+  const home = () => { try { sessionStorage.removeItem("allfix.entered"); } catch { /* storage unavailable */ } setChoosing(true); setEntered(false); };
   const enter = () => { try { sessionStorage.setItem("allfix.entered", "1"); } catch { /* storage unavailable */ } setEntered(true); };
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
@@ -56,7 +60,7 @@ export default function App() {
         setHealth(h);
         setStages(st);
         setProjects(ps);
-        if (ps.length === 0) { setCreating(true); return; }
+        if (ps.length === 0) return;
         const last = store.get("allfix.project");
         await openProject(ps.find((p) => p.id === last)?.id ?? ps[0].id);
       } catch (e) {
@@ -188,16 +192,19 @@ export default function App() {
     );
   }
 
-  if (!entered) return <Entrance projects={projects} onNew={() => { enter(); setCreating(true); }} onDashboard={enter} />;
-  if (creating) return <Setup onCreate={createProject} onCancel={() => setCreating(false)} canCancel={projects.length > 0} />;
+  if (!entered) return <Entrance projects={projects} startChoosing={choosing}
+    onNew={() => { enter(); setSetupFrom("entrance"); setCreating(true); }} onDashboard={() => { setCreating(false); enter(); }} />;
+  if (creating) return <Setup onCreate={createProject}
+    onCancel={() => { setCreating(false); if (setupFrom === "entrance") home(); }} />;
 
   return (
     <>
       <div className="frame flex h-full flex-col gap-3 bg-bg p-3 text-fg max-md:h-auto max-md:min-h-full">
         <TopBar projects={projects} project={project} view={view} health={health}
           onSelectProject={(id) => { setView("chat"); openProject(id); }}
-          onNewProject={() => setCreating(true)}
-          onKnowledge={() => setView("knowledge")} />
+          onNewProject={() => { setSetupFrom("app"); setCreating(true); }}
+          onHome={home}
+          onKnowledge={() => setView((v) => (v === "knowledge" ? "chat" : "knowledge"))} />
         <div className="flex min-h-0 flex-1 gap-3 max-md:flex-col">
           <Steps project={project} stages={stages} stage={stage} view={view}
             onSelectStage={(n) => { setView("chat"); setStage(n); }} />
@@ -210,7 +217,15 @@ export default function App() {
                 onQuote={quote} onStatus={setStatus} onSelectStage={setStage}
                 onAsk={(text) => { setView("chat"); setDraft(text); }} />
             </>
-          ) : <div className="flex-1" />}
+          ) : (
+            <div className="sheet grid min-w-0 flex-1 place-items-center p-8 text-center" data-testid="empty-dashboard">
+              <div className="flex max-w-sm flex-col items-center gap-3">
+                <b className="text-xl font-bold tracking-[-0.02em]">No projects yet</b>
+                <span className="text-sm text-muted">A project holds one business: its research, plan, files and decisions.</span>
+                <button onClick={() => { setSetupFrom("app"); setCreating(true); }} className="cta mt-2">New project</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
