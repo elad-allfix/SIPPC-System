@@ -53,7 +53,7 @@ Collected from each research area as it reported (2026-10-13). The search and fe
 
 ## Exposed by evaluation run 1
 - Google Business Profile, Local Services Ads and the local pack: added 2026-10-13 (`market/local-services.md`). Open: LSA lead prices by trade and city, and GBP ranking factors beyond Google's own statement.
-- Lawyer advertising rules (state bar), SAT/AP calendar-type demand timing, solar sales cycles and lead-qualifying fields: absent.
+- Lawyer advertising rules: Texas filing and exemptions added 2026-10-14 (market/legal-services.md); other states absent. SAT/AP calendar-type demand timing, solar sales cycles and lead-qualifying fields: absent.
 - Corrected: PLT-ADS-030 (only two Misrepresentation sub-policies are egregious; policy page re-opened 2026-10-13).
 
 ## Israel (`market/israel-market.md`, added 2026-10-13)
