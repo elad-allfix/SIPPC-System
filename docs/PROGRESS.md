@@ -178,3 +178,15 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 - EV-15 missed the consent rule for promotional WhatsApp follow-ups and the Sunday-Thursday week in its schedule. The country rule now says such constraints go in the plan itself, not only in saved items.
 - Windows: added "Setup AllFix.cmd" and "Start AllFix.cmd" (double-click); setup.ps1 links a zip-filled folder to GitHub when its repository has no commits. Code copied to Elad's PC folder; setup not run yet.
 - Recheck of EV-15 after the fix: the plan now covers consent and the "פרסומת" label for promotional WhatsApp follow-ups (MKT-ISR-003) and the Sunday-Thursday week and Shabbat (MKT-ISR-010).
+
+## 2026-10-14 · Running on Elad's PC
+- Setup ran on Windows (Python 3.14 was picked since 3.12/3.13 are not installed; all packages installed). The folder is now linked to GitHub.
+- Fixes found during the run: the GitHub link needed an explicit fetch refspec; setup now signs in to Claude with the Claude Code bundled in the Agent SDK (`auth status` / `auth login`); with no usable local Postgres it asks for the Supabase Session pooler string (typed in the console, saved only in `.env`) and asks again if the connection fails; Start opens the browser only once the server answers.
+- Result: AllFix runs at http://127.0.0.1:8000 on Elad's PC against Supabase; 412 knowledge entries loaded; the rail shows "Claude subscription".
+- New `Update AllFix.cmd`: fetches GitHub main, lets git take over hand-copied files that already match, fast-forwards, reinstalls the backend and rebuilds the interface.
+
+## 2026-10-14 · Attach exports and screenshots
+- Gap: the strategist asked users for search-term exports and phone screenshots, but the app had no way to receive files; the Ads API importer is the only account path.
+- Fable reviewed the design before building: cut to CSV/TSV + images (no Excel or PDF yet), keep files in Postgres so backups carry them, return the export's preamble (date range) and its own Total rows so a filtered or top-N export is detectable, don't resend old screenshots every turn, test against export-shaped fixtures. Its premise that the strategist had never produced real answers was out of date (runs 1-8 exist); the design advice was applied.
+- Built: migration 006 (`project_files`), upload/list/delete API (raw body), paperclip and paste-a-screenshot in the chat, files listed in the project brief, `read_file` tool (filter, sort, columns, paging, totals of additive columns only, Google Ads preamble and Total rows, UTF-16 Excel CSV, Hebrew headers, "--" as empty; images returned as image blocks). API backend drops screenshots from earlier turns. Tests 89 passed, 5 skipped.
+- Live check (subscription backend): first run caught a missing import in the subscription tool bridge (the strategist reported the failure honestly instead of guessing). After the fix it read both files: named the off-topic broad term taking 95% of spend, the $621 gap between the rows and the export's account total, and the competitor offers in the screenshot; it asked what the conversions were before recommending a block.
