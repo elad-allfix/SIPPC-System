@@ -167,6 +167,7 @@ def test_question_item_holds_one_question():
     from allfix.strategist.tools import ToolError, _check_single_question
     _check_single_question({"kind": "question", "title": "What share of calls become signed cases?"})
     _check_single_question({"kind": "finding", "title": "Who pays? Who decides?"})
-    for bundled in ("What is the website URL, and what event marks an activated trial?", "Close rate? Margin?"):
+    for bundled in ("What is the website URL, and what event marks an activated trial?", "Close rate? Margin?",
+                    "Who answers at 9pm on a Friday, and would you use an answering service?"):
         with pytest.raises(ToolError, match="one question"):
             _check_single_question({"kind": "question", "title": bundled})

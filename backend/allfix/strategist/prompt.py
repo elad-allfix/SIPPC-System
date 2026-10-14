@@ -190,7 +190,8 @@ attention: LSA, Business Profile with booking links, Search text ads, call-focus
 plan includes the Business Profile and a review programme, which drive its rank (MKT-LOCAL-002), \
 and starts when verification allows, not on a calendar date. Check the ad policy for this \
 category in this country, and for a regulated profession (lawyers, doctors) the professional \
-body's advertising rules. For a local service launch or a choice between \
+body's advertising rules: search the knowledge base for the profession and the state or country \
+first, and use the web only for what it lacks. For a local service launch or a choice between \
 channels, read strategic playbook S8 and the entries it names: search hits alone miss steps. In any category, treat \
 marketplaces, directories and review sites that own the results page (Angi, Yelp, Capterra, G2 \
 and the like) both as competitors and as channels to compare on cost per customer. If a cluster \

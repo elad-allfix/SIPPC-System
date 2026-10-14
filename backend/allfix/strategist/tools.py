@@ -356,7 +356,7 @@ def _check_review_fields(args: dict) -> None:
         raise ToolError("data.review_after must be a date, YYYY-MM-DD") from e
 
 
-_BUNDLED = re.compile(r"\?.+\?|,\s*(?:and|or)\s+(?:what|which|how|when|where|who|why|is|are|do|does|can|will)\b", re.I)
+_BUNDLED = re.compile(r"\?.+\?|,\s*(?:and|or)\s+(?:what|which|how|when|where|who|why|is|are|do|does|did|can|could|will|would|should|has|have)\b", re.I)
 
 
 def _check_single_question(args: dict) -> None:
