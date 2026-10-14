@@ -12,7 +12,8 @@ Write-Host "Updating AllFix..." -ForegroundColor Yellow
 foreach ($f in (& git diff --name-only HEAD origin/main)) {
   if (-not (Test-Path -LiteralPath $f)) { continue }
   $incoming = (& git rev-parse "origin/main:$f" 2>$null)
-  if ($incoming -and ((& git hash-object -- $f) -eq $incoming)) {
+  # Compare raw bytes and the line-ending-normalised form (Git for Windows may convert CRLF).
+  if ($incoming -and (((& git hash-object --no-filters -- $f) -eq $incoming) -or ((& git hash-object -- $f) -eq $incoming))) {
     & git ls-files --error-unmatch -- $f 2>$null | Out-Null
     if ($LASTEXITCODE -eq 0) { & git checkout -- $f } else { Remove-Item -LiteralPath $f }
   }
