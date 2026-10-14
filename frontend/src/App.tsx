@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, chatStream } from "./api";
 import Chat from "./components/Chat";
 import KnowledgeView from "./components/KnowledgeView";
-import NewProject from "./components/NewProject";
+import { Entrance, Setup } from "./components/Ignition";
 import { Steps, TopBar } from "./components/Rail";
 import StagePanel from "./components/StagePanel";
 import type { Conversation, Health, Item, Mode, Project, Stage, Turn } from "./types";
@@ -23,6 +23,9 @@ export default function App() {
   const [stage, setStage] = useState(3);
   const [view, setView] = useState<"chat" | "knowledge">("chat");
   const [creating, setCreating] = useState(false);
+  // The entrance shows once per browser tab session; Enter goes on to the app (or to setup if empty).
+  const [entered, setEntered] = useState(() => { try { return sessionStorage.getItem("allfix.entered") === "1"; } catch { return false; } });
+  const enter = () => { try { sessionStorage.setItem("allfix.entered", "1"); } catch { /* storage unavailable */ } setEntered(true); };
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState("");
   const [health, setHealth] = useState<Health | null>(null);
@@ -185,6 +188,9 @@ export default function App() {
     );
   }
 
+  if (!entered) return <Entrance onEnter={enter} />;
+  if (creating) return <Setup onCreate={createProject} onCancel={() => setCreating(false)} canCancel={projects.length > 0} />;
+
   return (
     <>
       <div className="frame flex h-full flex-col gap-3 bg-bg p-3 text-fg max-md:h-auto max-md:min-h-full">
@@ -207,7 +213,6 @@ export default function App() {
           ) : <div className="flex-1" />}
         </div>
       </div>
-      {creating && <NewProject onCreate={createProject} onCancel={() => setCreating(false)} canCancel={projects.length > 0} />}
     </>
   );
 }

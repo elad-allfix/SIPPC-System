@@ -191,6 +191,10 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 - Built: migration 006 (`project_files`), upload/list/delete API (raw body), paperclip and paste-a-screenshot in the chat, files listed in the project brief, `read_file` tool (filter, sort, columns, paging, totals of additive columns only, Google Ads preamble and Total rows, UTF-16 Excel CSV, Hebrew headers, "--" as empty; images returned as image blocks). API backend drops screenshots from earlier turns. Tests 89 passed, 5 skipped.
 - Live check (subscription backend): first run caught a missing import in the subscription tool bridge (the strategist reported the failure honestly instead of guessing). After the fix it read both files: named the off-topic broad term taking 95% of spend, the $621 gap between the rows and the export's account total, and the competitor offers in the screenshot; it asked what the conversions were before recommending a block.
 
+## 2026-10-14 · Ignition entrance and setup
+- New front door (Elad picked "Ignition" of five mockups): full-screen AllFix wordmark with three amber orbits on a canvas and one Enter button, shown once per browser tab session. Enter opens the app, or setup when there are no projects.
+- The new-project pop-up is replaced by four full-screen questions (business, starting point with website when needed, market, goal with optional words); Enter key moves on. NewProject.tsx removed.
+
 ## 2026-10-14 · Orbit interface
 - Elad picked "Orbit" from several mockups: a dark graphite frame (top bar, numbered seven-step path) holding light rounded sheets (chat, stage panel), the Sora typeface, amber only for the current step and focus, ink-black primary buttons. One fixed look; the light/dark toggle is gone.
 - Fewer words by request: short stage names (Connection, Business, Market, ...); the answer comes first, with tool steps, reasoning, sources and the model line folded behind "Details" (only the last three steps show while working); findings show an evidence dot and title, labels in plain words (Checked, Seen, Estimate, To test, Assumed) and a small evidence bar per stage; Claude status is one dot in the top bar.
