@@ -31,10 +31,9 @@ export interface ProjectCard extends Project {
   last_activity: string | null;
   item_counts: Record<string, number>;
   item_total: number;
-  needs_total: number;
   stages_with_items: number[];
   plan: string | null;
-  needs: { kind: "do" | "check" | "answer" | "fix" | "risk"; text: string }[];
+  needs: { kind: "do" | "check" | "answer" | "fix" | "risk"; text: string; item_id?: string; stage?: number }[];
 }
 
 export interface Source { url?: string; title?: string; note?: string; kb?: string; checked?: string }

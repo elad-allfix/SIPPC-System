@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Item, Project, Stage } from "../types";
 import Connectivity from "./Connectivity";
 import Ledger from "./Ledger";
-import Rounds from "./Rounds";
+import Control from "./Control";
 import { stageName } from "./Rail";
 import { Button, ENTRY_PATH_TITLE, EvidenceScale, KIND_TITLE, LabelBadge, LabelDot, Markdown, hostOf } from "./ui";
 
@@ -96,7 +96,15 @@ export default function StagePanel(p: Props) {
 
   let body: React.ReactNode;
   if (s.n === 1) {
-    body = <Connectivity projectId={pr.id} onAsk={p.onAsk} />;
+    body = (
+      <div className="space-y-5">
+        {p.items.length > 0 && <Grouped items={p.items} {...actions} />}
+        <div className="rounded-2xl border border-line p-3 text-sm text-muted">
+          Live account access is optional. Today the account is read from report exports: use Account check in the chat.
+        </div>
+        <Connectivity projectId={pr.id} onAsk={p.onAsk} />
+      </div>
+    );
   } else if (s.n === 2) {
     const facts = pr.facts ?? [];
     body = (
@@ -114,7 +122,7 @@ export default function StagePanel(p: Props) {
         </dl>
         <div>
           <h3 className="mb-2 text-[11px] font-medium uppercase tracking-wider text-faint">Business facts · {facts.length}</h3>
-          {facts.length === 0 ? <Empty>No facts recorded yet. Tell the strategist about margins, order value, close rate and capacity.</Empty> : (
+          {facts.length === 0 ? <Empty>No facts recorded yet. Tell the strategist what kind of business this is, what a conversion is and what it is worth, margins, close rate and capacity.</Empty> : (
             <div className="space-y-1.5">
               {facts.map((f) => (
                 <div key={f.key} className="rounded-lg border border-line bg-panel px-3 py-2">
@@ -122,7 +130,11 @@ export default function StagePanel(p: Props) {
                     <span className="text-xs text-faint">{f.key.replace(/_/g, " ")}</span><LabelBadge label={f.label} />
                   </div>
                   <div className="text-sm">{f.value}</div>
-                  {f.source && <div className="text-[11px] text-faint">{f.source}</div>}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-[11px] text-faint">{f.source}</span>
+                    <button onClick={() => p.onAsk(`Correct the business fact with key "${f.key}" (now ${f.value}, ${f.label}): it should be `)}
+                      className="shrink-0 text-[11px] text-accent-ink hover:underline" data-testid="correct-fact">Correct</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -140,31 +152,15 @@ export default function StagePanel(p: Props) {
       </div>
     );
   } else if (s.n === 7) {
-    const counts = pr.stage_counts ?? {};
-    body = (
-      <div className="space-y-2">
-        <Rounds projectId={pr.id} onAsk={p.onAsk} />
-        {p.stages.filter((x) => x.n !== 7).map((x) => {
-          const c = counts[String(x.n)] ?? {};
-          const total = Object.values(c).reduce((a, b) => a + b, 0);
-          return (
-            <button key={x.n} onClick={() => p.onSelectStage(x.n)} className="block w-full rounded-xl border border-line bg-panel p-3 text-left hover:border-accent">
-              <div className="flex justify-between text-sm"><span className="font-medium">{String(x.n).padStart(2, "0")} {x.title}</span><span className="tabular-nums text-muted">{total}</span></div>
-              <div className="mt-1 text-xs text-faint">
-                {total === 0 ? (x.n === 1 ? "See the stage for route checks" : x.n === 2 ? `${pr.facts?.length ?? 0} facts` : "Nothing yet")
-                  : Object.entries(c).map(([k, n]) => `${n} ${(KIND_TITLE[k] ?? k).toLowerCase()}`).join(" · ")}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    );
+    body = <Control project={pr} stages={p.stages} onAsk={p.onAsk} onSelectStage={p.onSelectStage} />;
   } else {
-    body = p.items.length === 0 ? <Empty>Findings appear here as the strategist works.</Empty>
+    body = p.items.length === 0 ? <Empty>{s.n === 4 && pr.entry_path === "ads_account"
+      ? "Start here: press Account check in the chat and attach the account's report exports (campaigns, search terms, keywords, ads, change history)."
+      : "Findings appear here as the strategist works."}</Empty>
       : <Grouped items={p.items} {...actions} />;
   }
 
-  const showScale = s.n !== 1 && s.n !== 7 && p.items.length > 0;
+  const showScale = s.n !== 7 && p.items.length > 0;
   return (
     <aside className="sheet flex w-[21rem] shrink-0 flex-col max-xl:w-[18rem] max-md:w-full">
       <div className="space-y-3 px-5 pb-3 pt-5" title={s.summary}>

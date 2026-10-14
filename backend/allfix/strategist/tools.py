@@ -104,7 +104,10 @@ CLIENT_TOOLS: list[dict] = [
                     "items": {
                         "type": "object",
                         "properties": {
-                            "key": {"type": "string", "description": "e.g. average_order_value, gross_margin, close_rate, capacity_per_week"},
+                            "key": {"type": "string", "description": "Use these keys where they fit: business_model, conversion_definition, "
+                                                                    "value_per_customer, contribution_margin, close_rate, conversion_rate, "
+                                                                    "capacity_per_week; add ' (segment)' for one part of the business, e.g. "
+                                                                    "'value_per_customer (garage doors)'. To correct a fact, reuse its exact key."},
                             "value": {"type": "string"},
                             "label": {"type": "string", "enum": LABEL_ENUM},
                             "source": {"type": "string"},
@@ -119,8 +122,9 @@ CLIENT_TOOLS: list[dict] = [
         "name": "save_item",
         "description": "Save something worth keeping to the project's memory. Kinds: finding, intent_cluster, "
                        "competitor, economics, website_issue, opportunity, risk, decision, forecast, experiment, "
-                       "question. Stages: 2 business understanding, 3 market research, 4 campaign/website "
-                       "intelligence, 5 strategy, 6 learning (decisions, forecasts, experiments). Use data for "
+                       "question. Stages: 2 business understanding (also tracking and measurement), 3 market research, "
+                       "4 campaign/website intelligence, 5 strategy and actions, 6 learning (decisions, forecasts, "
+                       "experiments); stages 1 and 7 hold no items. Use data for "
                        "structure: intent_cluster {situation, example_queries, searcher_wants, value, competition}; "
                        "competitor {domain, angles, offers, proof, landing_pages}; decision {decision, reasoning, "
                        "alternatives}; forecast {prediction, metric, expected_range, review_after (YYYY-MM-DD), would_change_if}; "
@@ -165,7 +169,10 @@ CLIENT_TOOLS: list[dict] = [
         "name": "calculate_economics",
         "description": "Advertising economics with ranges: value per click, maximum affordable CPC, break-even "
                        "ROAS, and which assumption is widest (pinning it down narrows the answer most). Shares are 0-1 (0.08 = 8%). Optionally pass "
-                       "a CPC (range) to compare against.",
+                       "a CPC (range) to compare against. The inputs are saved to the project's business facts "
+                       "(Stage 2) so the user can see and correct them; name the segment when a business has "
+                       "several (service line, city), and give each input's label. If the result lists conflicts, "
+                       "a saved fact the user gave differs from what you passed: rerun with the saved value.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -180,6 +187,12 @@ CLIENT_TOOLS: list[dict] = [
                                                  "CPCs are known: spend, expected customers and cost per customer "
                                                  "at each."},
                 "clicks": {"type": "number", "description": "Clicks in the planned test (default 100)."},
+                "segment": {"type": "string", "description": "Which part of the business these numbers describe, "
+                                                             "e.g. 'garage door repair, Calgary'. Omit for the whole business."},
+                "currency": {"type": "string", "description": "Currency of value_per_customer, e.g. CAD."},
+                "labels": {"type": "object", "description": "Label per input name (verified, observed, estimate, "
+                                                            "assumption); inputs not listed are saved as assumption.",
+                           "additionalProperties": {"type": "string", "enum": LABEL_ENUM}},
             },
             "required": ["conversion_rate", "value_per_customer", "contribution_margin"],
         },
@@ -364,9 +377,54 @@ async def _update_item(ctx: ToolContext, args: dict) -> Any:
 async def _calculate_economics(ctx: ToolContext, args: dict) -> Any:
     inputs = {k: v for k, v in args.items() if k in economics.INPUTS}
     try:
-        return economics.calculate(inputs, args.get("cpc"), args.get("cpc_scenarios"), args.get("clicks"))
+        result = economics.calculate(inputs, args.get("cpc"), args.get("cpc_scenarios"), args.get("clicks"))
     except ValueError as e:
         raise ToolError(str(e)) from e
+    facts = await _economics_facts(ctx.project_id, inputs, args)
+    result["saved_as_facts"] = facts["saved"]
+    if facts["conflicts"]:
+        result["conflicts"] = facts["conflicts"]
+        result["note"] = "These inputs differ from facts the user gave. Rerun with the saved values before using this result."
+    return result
+
+
+# Labels a saved fact can carry that an economics assumption must not overwrite.
+_FIRM = ("verified", "observed")
+
+
+def _fmt_input(name: str, v: Any, currency: str) -> str:
+    lo, hi = (v if isinstance(v, (list, tuple)) else (v, v))
+    if name == "value_per_customer":
+        f = lambda x: f"{x:,.0f}" if x >= 100 else f"{x:,.2f}"  # noqa: E731
+        txt = f(lo) if lo == hi else f"{f(lo)}-{f(hi)}"
+        return f"{txt} {currency}".strip()
+    p = lambda x: f"{x * 100:.3g}%"  # noqa: E731
+    return p(lo) if lo == hi else f"{p(lo)}-{p(hi)}"
+
+
+async def _economics_facts(project_id: str, inputs: dict, args: dict) -> list[str]:
+    """Persist the economics inputs as business facts, so assumptions are visible, reused and
+    correctable. A fact the user gave (verified or observed) is never overwritten by an assumption."""
+    seg = str(args.get("segment") or "").strip()
+    labels = args.get("labels") or {}
+    existing = {f["key"]: f for f in await store.list_facts(project_id)}
+    saved, conflicts = [], []
+    for name, v in inputs.items():
+        key = f"{name} ({seg})" if seg else name
+        label = labels.get(name) if labels.get(name) in store.LABELS else "assumption"
+        try:
+            value = _fmt_input(name, v, str(args.get("currency") or ""))
+        except (TypeError, ValueError):
+            continue
+        # A firm fact for this segment, or for the whole business, wins over an assumption.
+        firm = next((existing[k] for k in (key, name) if k in existing and existing[k]["label"] in _FIRM), None)
+        if firm and label not in _FIRM:
+            if firm["value"] != value:
+                conflicts.append({"input": name, "fact": f"{firm['key']}: {firm['value']} [{firm['label']}]", "used": value})
+            continue
+        await store.set_fact(project_id, key, value, label, f"used in economics, {date.today().isoformat()}")
+        saved.append(key)
+    return {"saved": saved, "conflicts": conflicts}
 
 
 async def _audit_page(ctx: ToolContext, args: dict) -> Any:

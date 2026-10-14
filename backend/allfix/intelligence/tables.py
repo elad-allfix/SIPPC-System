@@ -248,7 +248,8 @@ def check_totals(table: Table, sums: dict[str, float]) -> dict[str, Any]:
 REPORT_GUIDE: dict[str, str] = {
     "search terms report": "What people actually typed. Group by Search term or Campaign; look for spend on "
         "irrelevant intent (jobs, DIY, parts, for sale, competitors), terms that convert, and how much sits in "
-        "'Total: Other search terms' (hidden queries).",
+        "'Total: Other search terms'. That row is searches Google does not show (privacy thresholds): "
+        "unobserved, not waste. Report its share as spend you cannot see; count as waste only terms you saw.",
     "search keyword report": "Your keywords. Weight Quality Score parts (Exp. CTR, Ad relevance, Landing page exp.) "
         "by Cost, split cost by Match type, and find keywords with spend but no conversions.",
     "ad group report": "Structure. Count ad groups with and without spend; very many thin ad groups means too "

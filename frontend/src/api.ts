@@ -21,6 +21,7 @@ export const api = {
   stages: () => req<Stage[]>("/stages"),
   projects: () => req<Project[]>("/projects"),
   overview: () => req<ProjectCard[]>("/overview"),
+  needs: (id: string) => req<ProjectCard>(`/projects/${id}/needs`),
   project: (id: string) => req<Project>(`/projects/${id}`),
   createProject: (body: Partial<Project>) => req<Project>("/projects", { method: "POST", body: JSON.stringify(body) }),
   updateProject: (id: string, body: Partial<Project>) =>

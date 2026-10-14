@@ -93,7 +93,8 @@ def test_overview_lists_projects_with_needs():
             "Run the account check on the report exports", "Upload the account's report exports", "Add the website address"]
         b = cards["Busy"]
         assert b["plan"] == "Fix tracking first" and b["item_total"] == 3 and b["conversation_count"] == 1
-        assert [n["kind"] for n in b["needs"]] == ["check", "answer"] and b["needs_total"] == 2
+        assert [n["kind"] for n in b["needs"]] == ["check", "answer"]
+        assert client.get(f"/api/projects/{p['id']}/needs").json()["plan"] == "Fix tracking first"
         assert b["item_counts"]["question"] == 1 and b["stages_with_items"]
 
 
@@ -108,3 +109,27 @@ def test_is_due():
     assert not is_due(f(review_after="not a date"), t) and not is_due(f(), t)
     assert is_due({"kind": "experiment", "status": "open", "data": {"review_after": "20261001"}}, t)
     assert not is_due({**f(review_after="2026-10-01"), "status": "done"}, t)
+
+
+def test_economics_inputs_become_facts_and_stage_one_items_move():
+    client, _ = _client([
+        ([tool("t1", "update_project", {"facts": [{"key": "value_per_customer (garage doors)", "value": "400 CAD",
+                                                    "label": "observed", "source": "owner"}]}),
+          tool("t2", "calculate_economics", {"conversion_rate": [0.04, 0.12], "value_per_customer": [250, 600],
+                                             "contribution_margin": 0.5, "segment": "garage doors", "currency": "CAD",
+                                             "labels": {"contribution_margin": "estimate"}}),
+          tool("t3", "save_item", {"kind": "finding", "stage": 1, "title": "Calls not tracked", "body": "-",
+                                   "label": "observed", "confidence": "high"})], "tool_use"),
+        ([text("Done.")], "end_turn"),
+    ])
+    with client:
+        p = client.post("/api/projects", json={"name": "Doors"}).json()
+        conv = client.post(f"/api/projects/{p['id']}/conversations", json={}).json()
+        client.post(f"/api/conversations/{conv['id']}/chat", json={"message": "go"})
+        facts = {f["key"]: f for f in client.get(f"/api/projects/{p['id']}").json()["facts"]}
+        assert facts["value_per_customer (garage doors)"]["value"] == "400 CAD"   # the owner's figure stays
+        assert facts["conversion_rate (garage doors)"] == {**facts["conversion_rate (garage doors)"],
+                                                           "value": "4%-12%", "label": "assumption"}
+        assert facts["contribution_margin (garage doors)"]["label"] == "estimate"
+        items = client.get(f"/api/projects/{p['id']}/items").json()
+        assert [(i["title"], i["stage"]) for i in items] == [("Calls not tracked", 2)]

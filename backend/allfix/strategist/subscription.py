@@ -39,7 +39,8 @@ WEB_TOOLS = ["WebSearch", "WebFetch"]
 MAX_AGENT_TURNS = 60
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 SAVING_TOOLS = {"save_item", "update_item", "update_project", "record_lesson"}
-SAVE_ALLOWANCE = 10
+SAVE_ALLOWANCE = 20  # saves allowed past the cap
+RESEARCH_MARGIN = 5  # research stops this many calls before the cap
 
 # Environment overrides for the agent process. An empty ANTHROPIC_API_KEY makes Claude
 # Code ignore any key in the environment, so usage can't silently move to API billing.
@@ -264,7 +265,7 @@ def build_options(strategist: SubscriptionStrategist, turn: _Turn, ctx: ToolCont
         if name in SAVING_TOOLS:
             ok = calls["n"] <= limit + SAVE_ALLOWANCE
         else:
-            ok = calls["n"] <= limit - SAVE_ALLOWANCE // 2
+            ok = calls["n"] <= limit - RESEARCH_MARGIN
         if ok:
             return {}
         return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",

@@ -89,7 +89,7 @@ export default function App() {
 
   useEffect(() => {
     if (!project) return;
-    if (stage === 1 || stage === 7) { setItems([]); return; }
+    if (stage === 7) { setItems([]); return; }
     api.items(project.id, stage).then(setItems).catch(() => setItems([]));
   }, [project?.id, project?.updated_at, stage]);
 
@@ -97,7 +97,7 @@ export default function App() {
     const p = await api.createProject(body);
     setProjects((l) => [p, ...l]);
     setCreating(false);
-    setStage(p.entry_path === "ads_account" ? 1 : 3);
+    setStage(p.entry_path === "ads_account" ? 4 : 3);
     await openProject(p.id);
     setView("chat");
   };

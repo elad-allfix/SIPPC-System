@@ -104,15 +104,15 @@ function Card({ c, onOpen }: { c: ProjectCard; onOpen: () => void }) {
 
       <div className="flex flex-col gap-1.5" data-testid="needs">
         <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-faint">Needs</div>
-        {c.needs.length ? c.needs.map((n, i) => (
+        {c.needs.length ? c.needs.slice(0, 4).map((n, i) => (
           <div key={i} className="flex items-start gap-2 text-sm">
             <span className="mt-0.5 w-14 shrink-0 text-[11px] font-bold uppercase tracking-[0.06em]" style={{ color: NEED[n.kind]?.color }}>
               {NEED[n.kind]?.tag ?? n.kind}
             </span>
             <span className="line-clamp-2 min-w-0">{n.text}</span>
           </div>
-        )).concat(c.needs_total > c.needs.length ? [
-          <span key="more" className="pl-16 text-xs text-faint">+{c.needs_total - c.needs.length} more inside</span>,
+        )).concat(c.needs.length > 4 ? [
+          <span key="more" className="pl-16 text-xs text-faint">+{c.needs.length - 4} more inside</span>,
         ] : []) : (
           <span className="text-sm text-faint">
             {c.plan ? "Nothing else open." : c.item_total ? "Nothing open flagged yet." : "Nothing saved yet."}

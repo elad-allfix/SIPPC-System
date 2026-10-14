@@ -34,3 +34,16 @@ def test_rejects_percent_given_as_whole_number():
 def test_missing_input():
     with pytest.raises(ValueError, match="missing input: contribution_margin"):
         calculate({"conversion_rate": 0.1, "value_per_customer": 100})
+
+
+async def test_economics_reports_conflict_with_owner_fact(database):
+    from allfix import store
+    from allfix.strategist.tools import ToolContext, _calculate_economics
+    p = await store.create_project({"name": "Doors"})
+    await store.set_fact(p["id"], "value_per_customer", "400 CAD", "observed", "owner")
+    r = await _calculate_economics(ToolContext(p["id"], "c"), {
+        "conversion_rate": 0.08, "value_per_customer": [250, 600], "contribution_margin": 0.5,
+        "segment": "garage doors", "currency": "CAD"})
+    assert r["saved_as_facts"] == ["conversion_rate (garage doors)", "contribution_margin (garage doors)"]
+    assert r["conflicts"] == [{"input": "value_per_customer", "fact": "value_per_customer: 400 CAD [observed]",
+                               "used": "250-600 CAD"}]

@@ -101,6 +101,14 @@ async def overview() -> list[dict]:
     return await store.overview()
 
 
+@router.get("/projects/{project_id}/needs")
+async def project_needs(project_id: str) -> dict:
+    cards = await store.overview(project_id)
+    if not cards:
+        raise _404("project")
+    return cards[0]
+
+
 @router.post("/projects", status_code=201)
 async def create_project(body: ProjectIn) -> dict:
     p = await store.create_project(body.model_dump())

@@ -268,6 +268,22 @@ Conversion action: Purchase (Shopify app), plus "Add to cart" also set as primar
 
 **Traps.** Prices without VAT in ads. "הכי טוב" or "ללא כאב" claims. Remarketing or Customer Match from patient records. Bulk WhatsApp promotions without consent.
 
+## EV-16 · Doubled bids on an account without tracking
+**Evidence:** synthetic; built from the 14 Oct 2026 account check and the 7-layer audit (findings 1, 2, 5).
+
+**Situation.** Garage door repair and locksmith ads in Canada, about CA$1.25M spent since 2020 across 130 campaigns for many cities and about 40 websites; one campaign is named for an HVAC company in another city. Conversion tracking records about 200 conversions in total, almost all on mobile. The campaigns were paused all of September and restarted on Oct 2. On Oct 11 the phrase-match keyword max CPCs were raised from CA$3.45 to CA$6.90. Average CPC paid: Feb 2026 CA$2.44, Aug 2026 CA$4.35, Oct 1-13 CA$3.22 (CA$940 for 292 clicks). The search terms report puts 34.5% of all-time cost in "Other search terms". Nobody has said what a job or a call is worth.
+
+**Question.** "Should we undo the October 11 bid increase?"
+
+**Rubric.**
+1. **(critical)** Does not order the reversal on assumed economics: notes that CA$6.90 is a cap, quotes the observed CPC paid after the change (about CA$3.22, below August), and says the affordable CPC cannot be judged until a call's value and the call rate are known.
+2. **(critical)** Frames the bid change as a test or a hold with a concrete stop rule (for example CPC paid, impression share or calls), or says what data would decide it, instead of a confident reversal.
+3. **(critical)** Asks or flags what kind of business this is (one company, an agency account, or a lead network selling calls), because many sites, cities and another trade's campaign point away from a single company, and the value of a click depends on it.
+4. Treats "Other search terms" as spend Google does not show, not as waste.
+5. Puts call tracking first, stated once, without stopping the rest of the review.
+
+**Traps.** "Undo the increase" because CA$6.90 is above a mid-case affordable CPC built from assumptions. Calling hidden search terms waste. Asking only for "average job value and margin" as if it were one company.
+
 ## What these cases cannot show
 
 - They were written by the same system that will be graded on them, so they test coverage of known situations, not judgement in unknown ones.

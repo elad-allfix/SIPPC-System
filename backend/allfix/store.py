@@ -81,7 +81,7 @@ def is_due(item: dict, today: date | None = None) -> bool:
         return False
 
 
-async def overview() -> list[dict]:
+async def overview(project_id: str | None = None) -> list[dict]:
     """Every project with its main details and what it needs next, for the projects page.
     Deterministic: built from the saved items, files and conversations, no model call, nothing invented."""
     projects = _clean_all(await db.fetch_all(
@@ -93,15 +93,18 @@ async def overview() -> list[dict]:
                            (select max(c.updated_at) from conversations c where c.project_id = p.id),
                            (select max(f.created_at) from project_files f where f.project_id = p.id),
                            (select max(i.updated_at) from items i where i.project_id = p.id)) as last_activity
-           from projects p order by p.updated_at desc"""))
+           from projects p where %(pid)s::uuid is null or p.id = %(pid)s::uuid
+           order by p.updated_at desc""", {"pid": project_id}))
     counts = await db.fetch_all(
         """select project_id, stage, kind, count(*) as n from items where status <> 'superseded'
-           group by project_id, stage, kind""")
+             and (%(pid)s::uuid is null or project_id = %(pid)s::uuid)
+           group by project_id, stage, kind""", {"pid": project_id})
     # Only the kinds that can become a need, and only open ones: small even with many items.
     open_items = _clean_all(await db.fetch_all(
-        """select project_id, kind, title, label, status, data from items
+        """select id, project_id, stage, kind, title, label, status, data from items
            where status = 'open' and kind in ('forecast', 'experiment', 'question', 'website_issue', 'risk', 'decision')
-           order by created_at desc"""))
+             and (%(pid)s::uuid is null or project_id = %(pid)s::uuid)
+           order by created_at desc""", {"pid": project_id}))
     by_kind: dict[str, dict[str, int]] = {}
     stages: dict[str, set] = {}
     for r in counts:
@@ -126,15 +129,16 @@ async def overview() -> list[dict]:
             needs.append({"kind": "do", "text": "Upload the account's report exports"})
         if p["entry_path"] != "new_niche" and not p.get("website_url"):
             needs.append({"kind": "do", "text": "Add the website address"})
-        needs += [{"kind": "fix", "text": i["title"]} for i in of("website_issue") if firm(i)]
-        needs += [{"kind": "risk", "text": i["title"]} for i in of("risk") if firm(i)][:1]
-        needs += [{"kind": "check", "text": f"Due for a check: {i['title']}"} for i in mine if is_due(i, today)]
-        needs += [{"kind": "answer", "text": i["title"]} for i in of("question")]
+        ref = lambda i: {"item_id": i["id"], "stage": i["stage"]}  # noqa: E731
+        needs += [{"kind": "fix", "text": i["title"], **ref(i)} for i in of("website_issue") if firm(i)]
+        needs += [{"kind": "risk", "text": i["title"], **ref(i)} for i in of("risk") if firm(i)][:1]
+        needs += [{"kind": "check", "text": i["title"], **ref(i)} for i in mine if is_due(i, today)]
+        needs += [{"kind": "answer", "text": i["title"], **ref(i)} for i in of("question")]
         plan = next(iter(of("decision")), None)
         kinds = by_kind.get(p["id"], {})
         out.append({**p, "item_counts": kinds, "item_total": sum(kinds.values()),
                     "stages_with_items": sorted(stages.get(p["id"], set())),
-                    "plan": plan["title"] if plan else None, "needs": needs[:4], "needs_total": len(needs)})
+                    "plan": plan["title"] if plan else None, "needs": needs})
     return out
 
 
@@ -211,6 +215,18 @@ def _normalise_sources(sources: Any) -> list[dict]:
     return out
 
 
+def item_stage(kind: str, stage: int) -> int:
+    """Stage 1 (Connection) and 7 (Control) hold no items of their own: a measurement or tracking
+    item asked for Stage 1 goes to Business (2), anything asked for Control to its kind's stage."""
+    if not 1 <= stage <= 7:
+        raise ValueError("stage must be 1-7")
+    if stage == 1:
+        return 2 if kind in ("finding", "risk", "question", "economics") else KIND_STAGE[kind]
+    if stage == 7:
+        return KIND_STAGE[kind]
+    return stage
+
+
 async def create_item(project_id: str, data: dict, conversation_id: str | None = None) -> dict:
     kind = data.get("kind")
     if kind not in KINDS:
@@ -218,9 +234,7 @@ async def create_item(project_id: str, data: dict, conversation_id: str | None =
     label = data.get("label", "hypothesis")
     if label not in LABELS:
         raise ValueError(f"label must be one of {LABELS}")
-    stage = int(data.get("stage") or KIND_STAGE[kind])
-    if not 1 <= stage <= 7:
-        raise ValueError("stage must be 1-7")
+    stage = item_stage(kind, int(data.get("stage") or KIND_STAGE[kind]))
     title = (data.get("title") or "").strip()
     if not title:
         raise ValueError("title is required")
@@ -244,6 +258,10 @@ async def update_item(item_id: str, data: dict) -> dict:
         raise ValueError(f"status must be one of {STATUSES}")
     if "superseded_by" in fields:
         fields["status"] = "superseded"
+    if "stage" in fields:
+        cur = await db.fetch_one("select kind from items where id = %s", (item_id,))
+        if cur:
+            fields["stage"] = item_stage(cur["kind"], int(fields["stage"]))
     sets = [f"{k} = %({k})s" for k in fields]
     params: dict[str, Any] = dict(fields)
     if data.get("append_note"):

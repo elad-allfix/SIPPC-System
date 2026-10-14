@@ -173,7 +173,7 @@ export default function Chat(p: Props) {
     const done = await upload(files);
     const all = [...attached, ...done];
     if (all.length === 0 || p.busy) return;
-    p.onSend([ACCOUNT_CHECK, ...all.map(attachedLine)].join("\n"), mode);
+    p.onSend([ACCOUNT_CHECK, ...all.map(attachedLine)].join("\n"), "deep"); // the account verdict gets the deeper model
     setAttached([]);
   };
 
@@ -273,7 +273,7 @@ export default function Chat(p: Props) {
             <input ref={checkRef} type="file" multiple accept=".csv,.tsv,.txt" className="hidden" data-testid="check-input"
               onChange={(e) => { accountCheck(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
             <button onClick={() => checkRef.current?.click()} disabled={p.busy || uploading > 0} data-testid="account-check"
-              title="Upload Google Ads report exports (campaigns, search terms, keywords, ads, conversions) and get one verdict, 3 numbers and the top 5 actions"
+              title="Upload Google Ads report exports (campaigns, search terms, keywords, ads, conversions) and get one verdict, 3 numbers and the top 5 actions. Always runs in Deep mode."
               className="rounded-full border border-line px-3 py-1 text-xs text-muted hover:bg-sunken hover:text-fg disabled:opacity-40">
               Account check
             </button>
