@@ -13,7 +13,7 @@ from typing import Any, AsyncIterator
 from .. import store
 from .models import ModelClient, spec_for
 from .prompt import SYSTEM_PROMPT, project_brief
-from .tools import ToolContext, run_tool, tool_list
+from .tools import ToolContext, run_tool_blocks, tool_list
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ def build_history(rows: list[dict]) -> list[dict]:
     """
     out: list[dict] = []
     pending: list[str] = []  # tool_use ids from the last assistant message still waiting for results
+    last_user = max((i for i, r in enumerate(rows) if r["role"] == "user" and _has_text(r["content"])), default=-1)
     for i, r in enumerate(rows):
         if r["role"] == "system":
             nxt = rows[i + 1]["role"] if i + 1 < len(rows) else None
@@ -51,7 +52,28 @@ def build_history(rows: list[dict]) -> list[dict]:
         pending = []
         if r["role"] == "assistant" and isinstance(content, list):
             pending = [b["id"] for b in content if isinstance(b, dict) and b.get("type") == "tool_use"]
+        if i < last_user and r["role"] == "user":
+            content = _without_images(content)
         out.append({"role": r["role"], "content": content})
+    return out
+
+
+def _has_text(content: Any) -> bool:
+    return isinstance(content, str) or any(isinstance(b, dict) and b.get("type") == "text" for b in content)
+
+
+def _without_images(content: Any) -> Any:
+    """Screenshots from earlier turns are not resent on every request; read_file shows them again."""
+    if not isinstance(content, list):
+        return content
+    out = []
+    for b in content:
+        if isinstance(b, dict) and b.get("type") == "tool_result" and isinstance(b.get("content"), list):
+            parts = [p if p.get("type") != "image" else
+                     {"type": "text", "text": "[image shown in an earlier turn; call read_file to see it again]"}
+                     for p in b["content"]]
+            b = {**b, "content": parts}
+        out.append(b)
     return out
 
 
@@ -178,8 +200,14 @@ async def run_turn(client: ModelClient, project_id: str, conversation_id: str,
 
         results = []
         for block in tool_uses:
-            text, is_error = await run_tool(ctx, block["name"], block.get("input"))
-            results.append({"type": "tool_result", "tool_use_id": block["id"], "content": text,
+            blocks, is_error = await run_tool_blocks(ctx, block["name"], block.get("input"))
+            text = "\n".join(b["text"] for b in blocks if b["type"] == "text")
+            content: Any = text
+            if any(b["type"] == "image" for b in blocks):
+                content = [{"type": "text", "text": text}] + [
+                    {"type": "image", "source": {"type": "base64", "media_type": b["mimeType"], "data": b["data"]}}
+                    for b in blocks if b["type"] == "image"]
+            results.append({"type": "tool_result", "tool_use_id": block["id"], "content": content,
                             **({"is_error": True} if is_error else {})})
             yield {"type": "tool_end", "id": block["id"], "name": block["name"], "ok": not is_error,
                    "summary": text[:200] if is_error else "done"}

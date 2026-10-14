@@ -132,3 +132,11 @@ export interface Run {
   findings: RunFinding[] | null;
   metrics: Record<string, any> | null;
 }
+
+export interface FileRef {
+  id: string;
+  name: string;
+  mime: string;
+  size_bytes: number;
+  created_at: string;
+}

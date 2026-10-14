@@ -1,13 +1,38 @@
 import { useEffect, useRef, useState } from "react";
-import type { Activity, Conversation, Mode, Project, Turn } from "../types";
+import { api } from "../api";
+import type { Activity, Conversation, FileRef, Mode, Project, Turn } from "../types";
 import { Button, Markdown, hostOf } from "./ui";
 
 const TOOL_VERB: Record<string, string> = {
   web_search: "Searching the web", web_fetch: "Reading", search_knowledge: "Searching knowledge",
   read_knowledge: "Reading knowledge", get_project: "Checking the project", update_project: "Updating the project",
   save_item: "Saving", update_item: "Updating", calculate_economics: "Calculating economics",
-  record_lesson: "Recording a lesson", WebSearch: "Searching the web", WebFetch: "Reading",
+  record_lesson: "Recording a lesson", read_file: "Reading a file", WebSearch: "Searching the web", WebFetch: "Reading",
 };
+
+const ACCEPT = ".csv,.tsv,.txt,.png,.jpg,.jpeg,.webp,.gif";
+// The strategist reads attachments by id; the line is shown as a chip, not as text.
+const ATTACHED = /^\[Attached: (.+) \(file ([0-9a-f-]{36})\)\]$/;
+
+export function attachedLine(f: FileRef) {
+  return `[Attached: ${f.name} (file ${f.id})]`;
+}
+
+function UserTurn({ text }: { text: string }) {
+  const lines = text.split("\n");
+  const files = lines.map((l) => ATTACHED.exec(l.trim())).filter(Boolean) as RegExpExecArray[];
+  const body = lines.filter((l) => !ATTACHED.test(l.trim())).join("\n").trim();
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      {body && <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-sunken px-4 py-2.5 text-[15px]">{body}</div>}
+      {files.length > 0 && (
+        <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
+          {files.map((m) => <span key={m[2]} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">{m[1]}</span>)}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const STARTERS: Record<string, string[]> = {
   new_niche: [
@@ -99,10 +124,33 @@ export default function Chat(p: Props) {
     if (el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 240) + "px"; }
   }, [p.draft]);
 
+  const [attached, setAttached] = useState<FileRef[]>([]);
+  const [uploading, setUploading] = useState(0);
+  const [uploadError, setUploadError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const upload = async (files: File[]) => {
+    setUploadError("");
+    for (const f of files) {
+      setUploading((n) => n + 1);
+      try {
+        const ref = await api.uploadFile(p.project.id, f);
+        setAttached((a) => [...a, ref]);
+      } catch (e) {
+        setUploadError(`${f.name}: ${(e as Error).message}`);
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
+  };
+
   const send = () => {
     const text = p.draft.trim();
-    if (!text || p.busy) return;
-    p.onSend(text, mode);
+    if ((!text && attached.length === 0) || p.busy || uploading > 0) return;
+    const lines = attached.map(attachedLine);
+    p.onSend([text || "I attached a file.", ...lines].join("\n"), mode);
+    setAttached([]);
+    setUploadError("");
   };
 
   return (
@@ -148,9 +196,7 @@ export default function Chat(p: Props) {
           )}
           {p.turns.map((t, i) =>
             t.role === "user" ? (
-              <div key={i} className="flex justify-end">
-                <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-sunken px-4 py-2.5 text-[15px]">{t.text}</div>
-              </div>
+              <UserTurn key={i} text={t.text} />
             ) : <AssistantTurn key={i} t={t} />,
           )}
           <div ref={endRef} />
@@ -159,12 +205,38 @@ export default function Chat(p: Props) {
 
       <div className="border-t border-line px-6 py-4">
         <div className="mx-auto max-w-3xl rounded-2xl border border-line bg-panel p-2 focus-within:border-accent">
+          {(attached.length > 0 || uploading > 0 || uploadError) && (
+            <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1.5">
+              {attached.map((f) => (
+                <span key={f.id} className="flex items-center gap-1 rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">
+                  {f.name}
+                  <button aria-label={`Remove ${f.name}`} onClick={() => setAttached((a) => a.filter((x) => x.id !== f.id))}
+                    className="text-faint hover:text-fg">×</button>
+                </span>
+              ))}
+              {uploading > 0 && <span className="text-xs text-faint">Uploading…</span>}
+              {uploadError && <span className="text-xs text-danger">{uploadError}</span>}
+            </div>
+          )}
           <textarea ref={boxRef} value={p.draft} rows={1} data-testid="chat-input"
             onChange={(e) => p.setDraft(e.target.value)}
+            onPaste={(e) => {
+              const files = Array.from(e.clipboardData.files);
+              if (files.length) { e.preventDefault(); upload(files.map((f, i) =>
+                f.name && f.name !== "image.png" ? f : new File([f], `screenshot-${Date.now()}-${i}.png`, { type: f.type }))); }
+            }}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
             placeholder="Ask the strategist…"
             className="block max-h-60 w-full resize-none bg-transparent px-2 py-1.5 text-[15px] outline-none placeholder:text-faint" />
           <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-2">
+            <input ref={fileRef} type="file" multiple accept={ACCEPT} className="hidden" data-testid="file-input"
+              onChange={(e) => { upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+            <button onClick={() => fileRef.current?.click()} aria-label="Attach files" data-testid="attach"
+              title="Attach a CSV/TSV report export or a screenshot (you can also paste a screenshot)"
+              className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-fg">
+              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M15.5 9.5l-5.8 5.8a3.5 3.5 0 01-5-5l6.4-6.4a2.3 2.3 0 013.3 3.3l-6.3 6.3a1.2 1.2 0 01-1.7-1.7L12 6.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
             <div className="flex rounded-lg bg-sunken p-0.5 text-xs" role="radiogroup" aria-label="Mode">
               {(["standard", "deep"] as Mode[]).map((m) => (
                 <button key={m} role="radio" aria-checked={mode === m} onClick={() => setMode(m)}
@@ -174,8 +246,9 @@ export default function Chat(p: Props) {
                 </button>
               ))}
             </div>
+            </div>
             {p.busy ? <Button variant="outline" onClick={p.onStop}>Stop</Button>
-              : <Button variant="primary" onClick={send} disabled={!p.draft.trim()} data-testid="send">Send</Button>}
+              : <Button variant="primary" onClick={send} disabled={(!p.draft.trim() && attached.length === 0) || uploading > 0} data-testid="send">Send</Button>}
           </div>
         </div>
       </div>

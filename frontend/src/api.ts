@@ -1,4 +1,4 @@
-import type { Connectivity, ConnectionProfile, Conversation, Health, Item, Project, Stage, Turn, Mode, Run, Verification } from "./types";
+import type { Connectivity, FileRef, ConnectionProfile, Conversation, Health, Item, Project, Stage, Turn, Mode, Run, Verification } from "./types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -41,6 +41,18 @@ export const api = {
   runs: (projectId: string) => req<Run[]>(`/projects/${projectId}/runs`),
   accountCheck: (projectId: string, force = false) =>
     req<any>(`/projects/${projectId}/checks/account${force ? "?force=true" : ""}`, { method: "POST" }),
+  files: (projectId: string) => req<FileRef[]>(`/projects/${projectId}/files`),
+  uploadFile: async (projectId: string, file: File): Promise<FileRef> => {
+    const res = await fetch(`/api/projects/${projectId}/files?name=${encodeURIComponent(file.name)}`, {
+      method: "POST", body: file, headers: { "Content-Type": "application/octet-stream" },
+    });
+    if (!res.ok) {
+      let detail = res.statusText;
+      try { const j = await res.json(); if (typeof j.detail === "string") detail = j.detail; } catch { /* not json */ }
+      throw new Error(detail);
+    }
+    return res.json();
+  },
   knowledgeSearch: (q: string) => req<{ entries: any[]; documents: any[] }>(`/knowledge/search?q=${encodeURIComponent(q)}&limit=20`),
   knowledgeDocuments: () => req<any[]>("/knowledge/documents"),
   knowledgeRead: (id: string) => req<any>(`/knowledge/${encodeURIComponent(id)}`),

@@ -230,6 +230,28 @@ CLIENT_TOOLS: list[dict] = [
         },
     },
     {
+        "name": "read_file",
+        "description": "Read a file the user uploaded to this project (listed in the project state). Tables "
+                       "(Google Ads report exports, CRM or job lists as CSV/TSV) come back as columns, the "
+                       "preamble lines above the header (the export's title and date range), totals of the "
+                       "additive columns for the matching rows, the file's own Total rows, and a page of rows. "
+                       "Filter with contains, order with sort_by (e.g. 'Cost'), page with offset. Screenshots "
+                       "come back as the image itself.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "file_id": {"type": "string"},
+                "contains": {"type": "string", "description": "Keep rows where any cell contains this text (case-insensitive)."},
+                "sort_by": {"type": "string", "description": "Column name to order by (numbers sort numerically)."},
+                "descending": {"type": "boolean", "description": "Default true."},
+                "columns": {"type": "array", "items": {"type": "string"}, "description": "Only these columns in the rows."},
+                "offset": {"type": "integer", "minimum": 0},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 200, "description": "Rows to return (default 50)."},
+            },
+            "required": ["file_id"],
+        },
+    },
+    {
         "name": "record_lesson",
         "description": "Record a correction or lesson so future reasoning sees it. Use when a conclusion, a "
                        "recommendation or a knowledge entry turned out to be wrong. shared=true makes it apply "
@@ -381,6 +403,22 @@ async def _ads_query(ctx: ToolContext, args: dict) -> Any:
     return {"query": query, "rows": rows, "row_count": len(rows)}
 
 
+@dataclass
+class ToolImage:
+    """A tool result the model should see as an image."""
+    mime: str
+    data: bytes
+    note: dict
+
+
+async def _read_file(ctx: ToolContext, args: dict) -> Any:
+    from ..intelligence import uploads
+    f = await store.get_file(str(args["file_id"]), ctx.project_id)
+    if f is None:
+        raise ToolError("no file with that id in this project; the project state lists the uploaded files")
+    return uploads.read(f, args)
+
+
 async def _record_lesson(ctx: ToolContext, args: dict) -> Any:
     lesson = await store.create_lesson(None if args.get("shared") else ctx.project_id, args)
     return {"recorded": True, "id": lesson["id"]}
@@ -397,6 +435,7 @@ HANDLERS: dict[str, Callable[[ToolContext, dict], Awaitable[Any]]] = {
     "audit_page": _audit_page,
     "account_snapshot": _account_snapshot,
     "ads_query": _ads_query,
+    "read_file": _read_file,
     "record_lesson": _record_lesson,
 }
 
@@ -411,16 +450,27 @@ def _validate(name: str, args: Any) -> dict:
     return args
 
 
-async def run_tool(ctx: ToolContext, name: str, args: Any) -> tuple[str, bool]:
-    """Run one client tool. Returns (result text, is_error)."""
+async def run_tool_blocks(ctx: ToolContext, name: str, args: Any) -> tuple[list[dict], bool]:
+    """Run one client tool. Returns (MCP content blocks, is_error): text, plus an image when the
+    tool returns one."""
     handler = HANDLERS.get(name)
     if handler is None:
-        return f"unknown tool: {name}", True
+        return [{"type": "text", "text": f"unknown tool: {name}"}], True
     try:
         result = await handler(ctx, _validate(name, args))
-        return store.to_json(result), False
     except (ToolError, ValueError, KeyError) as e:
-        return f"error: {e}", True
+        return [{"type": "text", "text": f"error: {e}"}], True
     except Exception as e:  # keep the conversation valid; the error is logged by the caller
         log.exception("tool %s failed", name)
-        return f"internal error in {name}: {type(e).__name__}", True
+        return [{"type": "text", "text": f"internal error in {name}: {type(e).__name__}"}], True
+    if isinstance(result, ToolImage):
+        import base64
+        return [{"type": "text", "text": store.to_json(result.note)},
+                {"type": "image", "data": base64.b64encode(result.data).decode(), "mimeType": result.mime}], False
+    return [{"type": "text", "text": store.to_json(result)}], False
+
+
+async def run_tool(ctx: ToolContext, name: str, args: Any) -> tuple[str, bool]:
+    """Run one client tool. Returns (result text, is_error); images are described, not shown."""
+    blocks, is_error = await run_tool_blocks(ctx, name, args)
+    return "\n".join(b["text"] if b["type"] == "text" else "[image]" for b in blocks), is_error

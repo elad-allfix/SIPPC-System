@@ -130,6 +130,37 @@ async def put_fact(project_id: str, body: FactIn) -> dict:
     return await store.set_fact(project_id, body.key, body.value, body.label, body.source)
 
 
+# ---------- files ----------
+
+@router.get("/projects/{project_id}/files")
+async def list_files(project_id: str) -> list[dict]:
+    return await store.list_files(project_id)
+
+
+@router.post("/projects/{project_id}/files", status_code=201)
+async def upload_file(project_id: str, name: str, request: Request) -> dict:
+    """The raw file is the request body; its name comes in the query string."""
+    from ..intelligence import uploads
+    if await store.get_project(project_id) is None:
+        raise _404("project")
+    length = int(request.headers.get("content-length") or 0)
+    if length > uploads.MAX_BYTES:
+        raise HTTPException(413, f"The file is larger than {uploads.MAX_BYTES // (1024 * 1024)} MB.")
+    data = await request.body()
+    try:
+        mime = uploads.check(name, len(data))
+    except uploads.UploadRefused as e:
+        raise HTTPException(415, str(e))
+    return await store.add_file(project_id, name.strip()[:200], mime, data)
+
+
+@router.delete("/projects/{project_id}/files/{file_id}", status_code=204)
+async def delete_file(project_id: str, file_id: str) -> None:
+    from ..intelligence import uploads
+    await store.delete_file(file_id, project_id)
+    uploads.forget(file_id)
+
+
 # ---------- items ----------
 
 @router.get("/projects/{project_id}/items")

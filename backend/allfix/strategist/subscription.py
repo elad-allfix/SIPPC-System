@@ -29,7 +29,7 @@ from .. import db, store
 from ..config import get_settings
 from .loop import BUDGET_NOTE, _summarise_input
 from .prompt import SYSTEM_PROMPT, project_brief
-from .tools import CLIENT_TOOLS, ToolContext, run_tool
+from .tools import CLIENT_TOOLS, ToolContext, run_tool_blocks
 
 log = logging.getLogger(__name__)
 
@@ -238,11 +238,11 @@ def _build_mcp_server(turn: _Turn, ctx: ToolContext):
         name = defn["name"]
 
         async def handler(args: dict) -> dict:
-            text, is_error = await turn.call_main(run_tool(ctx, name, args))
+            blocks, is_error = await turn.call_main(run_tool_blocks(ctx, name, args))
             for item in list(ctx.saved_items):
                 turn.emit({"type": "item_saved", "item": item})
             ctx.saved_items.clear()
-            return {"content": [{"type": "text", "text": text}], **({"is_error": True} if is_error else {})}
+            return {"content": blocks, **({"is_error": True} if is_error else {})}
 
         return tool(name, defn["description"], defn["input_schema"])(handler)
 

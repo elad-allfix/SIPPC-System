@@ -286,3 +286,43 @@ async def append_message(conversation_id: str, role: str, content: list | str,
 
 def to_json(obj: Any) -> str:
     return json.dumps(obj, ensure_ascii=False, default=str)
+
+
+# ---------- files ----------
+
+FILE_COLUMNS = "id, project_id, name, mime, size_bytes, created_at"
+
+
+async def add_file(project_id: str, name: str, mime: str, content: bytes) -> dict:
+    return _clean(await db.fetch_one(
+        f"insert into project_files (project_id, name, mime, size_bytes, content) values (%s, %s, %s, %s, %s) "
+        f"returning {FILE_COLUMNS}", (project_id, name, mime, len(content), content)))
+
+
+async def list_files(project_id: str) -> list[dict]:
+    return _clean_all(await db.fetch_all(
+        f"select {FILE_COLUMNS} from project_files where project_id = %s order by created_at desc", (project_id,)))
+
+
+async def get_file(file_id: str, project_id: str) -> dict | None:
+    """The file with its content, only if it belongs to the project."""
+    try:
+        UUID(str(file_id))
+    except ValueError:
+        return None
+    row = await db.fetch_one(f"select {FILE_COLUMNS}, content from project_files where id = %s and project_id = %s",
+                             (file_id, project_id))
+    if row is None:
+        return None
+    content = bytes(row.pop("content"))
+    out = _clean(row)
+    out["content"] = content
+    return out
+
+
+async def delete_file(file_id: str, project_id: str) -> None:
+    try:
+        UUID(str(file_id))
+    except ValueError:
+        return
+    await db.execute("delete from project_files where id = %s and project_id = %s", (file_id, project_id))

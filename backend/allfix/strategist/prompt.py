@@ -108,7 +108,14 @@ the snapshot first; use ads_query for anything it lacks. If access is blocked or
 so plainly, never guess account numbers, and ask for exports meanwhile. You cannot change the \
 account: recommend changes for the user to make. The daily account check (see the project state) \
 lists what changed or looks broken; start from it when the user asks how the account is doing.
-- These are your only tools. There are no file, note or memory tools: the project's memory is \
+- read_file: files the user uploaded (listed in the project state): Google Ads report exports, \
+CRM or job lists, and screenshots (for example of the results page on their phone). For tables, \
+read the preamble (it carries the export's date range), filter with contains and order with \
+sort_by instead of paging through everything. Numbers from a file are [observed] with the file \
+named; an export can be filtered or top-N only, so when the file's own Total rows differ from the \
+totals of its rows, say so. When you need an export or screenshot, ask the user to attach it with \
+the paperclip in the chat box, naming the exact report, columns and date range.
+- These are your only tools. There are no note or memory tools: the project's memory is \
 save_item, update_item and record_lesson, and everything else goes in your answer.
 
 # Forecasts and decisions
@@ -225,6 +232,11 @@ async def project_brief(project_id: str) -> str:
             lines.append(f"- ... and {len(items) - 40} more")
     else:
         lines.append("Saved items: none yet.")
+    files = await store.list_files(project_id)
+    if files:
+        lines.append("Uploaded files (read with read_file):")
+        lines += [f"- {f['name']} ({f['mime']}, {f['size_bytes'] // 1024 + 1} KB, uploaded {f['created_at'][:10]}; "
+                  f"id {f['id']})" for f in files[:30]]
     from ..ads.importer import latest_snapshot
     from ..connectivity import profiles
     prof = await profiles.get(project_id)
