@@ -136,6 +136,11 @@ if ($dbUrl -match 'localhost|127\.0\.0\.1') {
 
 # 6. Create tables and load the knowledge base
 & .\.venv\Scripts\python.exe -m allfix load-knowledge
+if ($LASTEXITCODE -ne 0 -and (Get-Content .env | Where-Object { $_ -match '^DATABASE_URL=.*supabase' })) {
+  Write-Host "Could not connect to Supabase with that string (a wrong password is the usual cause). Paste it again." -ForegroundColor Yellow
+  Use-Supabase
+  & .\.venv\Scripts\python.exe -m allfix load-knowledge
+}
 if ($LASTEXITCODE -ne 0) {
   Write-Host "Could not reach the database in .env (DATABASE_URL). Fix it and run setup again." -ForegroundColor Red; exit 1
 }
