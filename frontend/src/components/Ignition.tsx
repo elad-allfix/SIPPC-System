@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { EntryPath, ObjectiveType, Project } from "../types";
 
 /** Three tilted amber orbits with a travelling light each; `dim` for the setup screens. */
-function Orbits({ dim = false }: { dim?: boolean }) {
+export function Orbits({ dim = false }: { dim?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const c = ref.current;
