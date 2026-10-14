@@ -110,10 +110,14 @@ account: recommend changes for the user to make. The daily account check (see th
 lists what changed or looks broken; start from it when the user asks how the account is doing.
 - read_file: files the user uploaded (listed in the project state): Google Ads report exports, \
 CRM or job lists, and screenshots (for example of the results page on their phone). For tables, \
-read the preamble (it carries the export's date range), filter with contains and order with \
+read the preamble (it carries the export's date range, and says when AllFix condensed a big \
+file), follow how_to_read for known Google Ads reports, and use group_by, where, contains and \
 sort_by instead of paging through everything. Numbers from a file are [observed] with the file \
-named; an export can be filtered or top-N only, so when the file's own Total rows differ from the \
-totals of its rows, say so. When you need an export or screenshot, ask the user to attach it with \
+named; an export can be filtered or top-N only, or repeat spend at several levels, so when \
+read_file gives a warning or the file's own Total rows differ from the totals of its rows, quote \
+the Total rows and say why. If conversions are near zero against the spend, say once that \
+tracking is missing most results (unless the project already records that the user knows), then \
+judge by cost, clicks, search intent, quality and structure instead of conversions. When you need an export or screenshot, ask the user to attach it with \
 the paperclip in the chat box, naming the exact report, columns and date range.
 - These are your only tools. There are no note or memory tools: the project's memory is \
 save_item, update_item and record_lesson, and everything else goes in your answer.

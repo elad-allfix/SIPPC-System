@@ -19,7 +19,7 @@ PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08
 
 def test_google_ads_export_preamble_totals_and_footer():
     t = tables.parse((EXPORTS / "search_terms_en.csv").read_bytes())
-    assert t.preamble == ["Search terms report", '"October 1, 2026 - October 13, 2026"']
+    assert t.preamble == ["Search terms report", "October 1, 2026 - October 13, 2026"]
     assert t.columns[0] == "Search term" and len(t.rows) == 5
     assert [r[0] for r in t.footer] == ["Total: Search terms", "Total: Account"]
     out = tables.query(t)
@@ -58,6 +58,58 @@ def test_numbers():
     assert tables.number("₪1,234.50") == 1234.5
     assert tables.number(" --") is None and tables.number("< 10%") is None
     assert tables.number("(12.5)") == -12.5 and tables.number("8.57%") == 8.57
+
+
+def test_currency_prefixes_and_codes():
+    assert tables.number("CA$4,648.79") == 4648.79 and tables.number("US$5") == 5
+    assert tables.number("12.30 CAD") == 12.3 and tables.number("EUR 4") == 4 and tables.number("-CA$5") == -5
+    assert tables.number("Calgary") is None
+
+
+# Shaped like real UI exports: title, range, header, rows (one with a line break inside a cell), totals.
+ASSETS = ('Asset association report\nAll time\nAsset,Level,Clicks,Cost\n'
+          '"24/7 Locksmith\nWe open any lock",Campaign,10,40.00\n"24/7 Locksmith\nWe open any lock",Ad group,10,40.00\n'
+          'Call us,Campaign,5,20.00\n').encode()
+TERMS = ('Search terms report\nAll time\nSearch term,Campaign,Clicks,Impr.,Cost,Conversions\n'
+         'garage door repair,Calgary,30,400,"CA$150.00",1.00\ngarage door repair,Edmonton,20,300,100.00,0.00\n'
+         'how to fix garage door,Calgary,8,90,40.00,0.00\nlocksmith calgary,Calgary,0,12,0.00,0.00\n'
+         'Total: Search terms,,58,802,290.00,1.00\nTotal: Account,,90,1200,450.00,1.00\n').encode()
+
+
+def test_line_breaks_in_cells_survive_and_repeated_levels_warn():
+    t = tables.parse(ASSETS)
+    assert t.rows[0][0] == "24/7 Locksmith\nWe open any lock" and len(t.rows) == 3
+    out = tables.query(t)
+    assert out["report"] == "Asset association report" and "never add" in out["how_to_read"]
+    assert "Level" in out["warning"]
+
+
+def test_group_where_and_file_total_check():
+    t = tables.parse(TERMS)
+    out = tables.query(t, group_by="Search term")
+    assert out["groups"][0] == {"Search term": "garage door repair", "rows": 2, "Clicks": 50, "Impr.": 700,
+                                "Cost": 250, "Conversions": 1}
+    out = tables.query(t, where=["Cost > 30", "Conversions = 0"], columns=["Search term"])
+    assert [r["Search term"] for r in out["rows"]] == ["garage door repair", "how to fix garage door"]
+    assert "warning" not in tables.query(t)  # rows match the first Total row (the listed terms)
+    with pytest.raises(ValueError):
+        tables.query(t, where=["Cost is big"])
+    short = tables.parse(TERMS.replace(b"how to fix garage door,Calgary,8,90,40.00,0.00\n", b""))
+    assert "290.00" in tables.query(short)["warning"]
+
+
+def test_condense_drops_idle_rows_and_round_trips():
+    packed, note = tables.condense(TERMS)
+    assert packed[:2] == b"\x1f\x8b" and "kept 3 of 4 rows" in note
+    t = tables.parse(packed)
+    assert t.preamble[0] == "Search terms report" and t.preamble[-1] == note
+    assert len(t.rows) == 3 and [r[0] for r in t.footer] == ["Total: Search terms", "Total: Account"]
+    assert tables.query(t)["totals_of_matching_rows"]["Cost"] == 290
+    # small files are stored as they are; big ones are condensed
+    assert uploads.prepare("text/csv", TERMS) == (TERMS, None)
+    big = TERMS.split(b"Total:")[0] + b"idle term,Calgary,0,0,0.00,0.00\n" * 400_000 + b"Total:" + TERMS.split(b"Total:", 1)[1]
+    stored, note = uploads.prepare("text/csv", big)
+    assert len(stored) < len(big) // 20 and "400,001 rows with no cost" in note
 
 
 def test_upload_check_refuses_with_a_reason():

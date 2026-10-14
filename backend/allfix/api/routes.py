@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, Literal
 
@@ -149,9 +150,11 @@ async def upload_file(project_id: str, name: str, request: Request) -> dict:
     data = await request.body()
     try:
         mime = uploads.check(name, len(data))
+        stored, note = await asyncio.to_thread(uploads.prepare, mime, data)
     except uploads.UploadRefused as e:
         raise HTTPException(415, str(e))
-    return await store.add_file(project_id, name.strip()[:200], mime, data)
+    f = await store.add_file(project_id, name.strip()[:200], mime, stored)
+    return {**f, "note": note} if note else f
 
 
 @router.delete("/projects/{project_id}/files/{file_id}", status_code=204)

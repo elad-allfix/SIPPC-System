@@ -8,7 +8,8 @@ from typing import Any
 
 from . import tables
 
-MAX_BYTES = 10 * 1024 * 1024
+MAX_BYTES = 250 * 1024 * 1024  # a full-history search terms export runs past 100 MB
+MAX_STORED = 10 * 1024 * 1024  # tables above this are condensed and compressed before storing
 MAX_IMAGE_BYTES = 5 * 1024 * 1024  # the model's own limit per image
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp",
                ".gif": "image/gif"}
@@ -40,6 +41,22 @@ def check(name: str, size: int) -> str:
     if size > limit:
         raise UploadRefused(f"The file is larger than {limit // (1024 * 1024)} MB.")
     return mime
+
+
+def prepare(mime: str, data: bytes) -> tuple[bytes, str | None]:
+    """What to store: small files as they are; big tables condensed (rows without activity left out)
+    and gzip-compressed, with a note the user sees. Refuses what still would not fit."""
+    if mime.startswith("image/") or len(data) <= MAX_STORED:
+        return data, None
+    try:
+        packed, note = tables.condense(data)
+    except ValueError:
+        raise UploadRefused(f"The file is larger than {MAX_STORED // (1024 * 1024)} MB and is not a table "
+                            "AllFix can condense.")
+    if len(packed) > MAX_STORED * 3:
+        raise UploadRefused("Even condensed, this export is too big to keep. Download a shorter date range "
+                            "(for example the last 12 months) and upload that.")
+    return packed, note
 
 
 def _load(f: dict) -> tables.Table | str:
@@ -76,4 +93,5 @@ def read(f: dict, args: dict) -> Any:
         return out
     return {**about, **tables.query(parsed, args.get("contains"), args.get("sort_by"),
                                     args.get("descending", True), args.get("offset") or 0,
-                                    args.get("limit") or 50, args.get("columns"))}
+                                    args.get("limit") or 50, args.get("columns"),
+                                    args.get("where"), args.get("group_by"))}

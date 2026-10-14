@@ -44,6 +44,7 @@ const STARTERS: Record<string, string[]> = {
     "Which searches should this website be able to win, and what stops it today?",
   ],
   ads_account: [
+    "Check the account from the reports I attached: one verdict, the 3 numbers that matter, then the top 5 actions.",
     "Before connecting the account, research the market so we know what good looks like.",
     "What will you check first once the account is connected, and why?",
   ],
@@ -223,7 +224,10 @@ export default function Chat(p: Props) {
                     className="text-faint hover:text-fg">×</button>
                 </span>
               ))}
-              {uploading > 0 && <span className="text-xs text-faint">Uploading…</span>}
+              {uploading > 0 && <span className="text-xs text-faint">Uploading… big exports take a minute</span>}
+              {attached.filter((f) => f.note).map((f) => (
+                <span key={`n-${f.id}`} className="w-full text-xs text-faint">{f.name}: {f.note!.replace(/^AllFix condensed this upload: /, "")}</span>
+              ))}
               {uploadError && <span className="text-xs text-danger">{uploadError}</span>}
             </div>
           )}
