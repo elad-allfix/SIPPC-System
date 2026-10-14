@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import date
 
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
@@ -355,8 +356,18 @@ def _check_review_fields(args: dict) -> None:
         raise ToolError("data.review_after must be a date, YYYY-MM-DD") from e
 
 
+_BUNDLED = re.compile(r"\?.+\?|,\s*(?:and|or)\s+(?:what|which|how|when|where|who|why|is|are|do|does|can|will)\b", re.I)
+
+
+def _check_single_question(args: dict) -> None:
+    """A question item holds one question, so the user can answer and close it on its own."""
+    if args.get("kind") == "question" and _BUNDLED.search(str(args.get("title", ""))):
+        raise ToolError("a question item holds one question: save each question as its own item")
+
+
 async def _save_item(ctx: ToolContext, args: dict) -> Any:
     _check_review_fields(args)
+    _check_single_question(args)
     item = await store.create_item(ctx.project_id, args, ctx.conversation_id)
     ctx.saved_items.append(item)
     out = {"saved": True, "id": item["id"], "stage": item["stage"], "kind": item["kind"]}

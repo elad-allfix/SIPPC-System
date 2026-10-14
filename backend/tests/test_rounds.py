@@ -160,3 +160,13 @@ def test_economics_cpc_scenarios():
     assert rows[0]["customers"] == {"low": 7.5, "mid": 11.25, "high": 15}
     # max affordable CPC: low 5, mid 7.5, high 10
     assert [r["within_affordable_cpc"] for r in rows] == ["all cases", "no case", "no case"]
+
+
+def test_question_item_holds_one_question():
+    import pytest
+    from allfix.strategist.tools import ToolError, _check_single_question
+    _check_single_question({"kind": "question", "title": "What share of calls become signed cases?"})
+    _check_single_question({"kind": "finding", "title": "Who pays? Who decides?"})
+    for bundled in ("What is the website URL, and what event marks an activated trial?", "Close rate? Margin?"):
+        with pytest.raises(ToolError, match="one question"):
+            _check_single_question({"kind": "question", "title": bundled})
