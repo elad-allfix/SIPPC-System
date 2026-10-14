@@ -128,6 +128,48 @@ def test_large_export_is_reduced_with_a_true_account_of_what_was_kept():
     assert min(tables.number(r[4]) for r in t.rows) == 9.0
 
 
+# Shaped like real UI exports: title, range, header, rows (one with a line break inside a cell), totals.
+ASSETS = ('Asset association report\nAll time\nAsset,Level,Clicks,Cost\n'
+          '"24/7 Locksmith\nWe open any lock",Campaign,10,40.00\n"24/7 Locksmith\nWe open any lock",Ad group,10,40.00\n'
+          'Call us,Campaign,5,20.00\n').encode()
+TERMS = ('Search terms report\nAll time\nSearch term,Campaign,Clicks,Impr.,Cost,Conversions\n'
+         'garage door repair,Calgary,30,400,"CA$150.00",1.00\ngarage door repair,Edmonton,20,300,100.00,0.00\n'
+         'how to fix garage door,Calgary,8,90,40.00,0.00\nlocksmith calgary,Calgary,0,12,0.00,0.00\n'
+         'Total: Search terms,,58,802,290.00,1.00\nTotal: Account,,90,1200,450.00,1.00\n').encode()
+
+
+def test_report_guide_and_level_note():
+    t = tables.parse(ASSETS)
+    assert t.rows[0][0] == "24/7 Locksmith\nWe open any lock" and len(t.rows) == 3
+    out = tables.query(t)
+    assert out["report"] == "Asset association report" and "never add" in out["how_to_read"]
+    assert "Level" in out["level_note"]
+
+
+def test_group_by_and_where():
+    t = tables.parse(TERMS)
+    out = tables.query(t, group_by="Search term")
+    assert out["groups"][0] == {"Search term": "garage door repair", "rows": 2, "Clicks": 50, "Impr.": 700,
+                                "Cost": 250, "Conversions": 1}
+    out = tables.query(t, where=["Cost > 30", "Conversions = 0"], columns=["Search term"])
+    assert [r["Search term"] for r in out["rows"]] == ["garage door repair", "how to fix garage door"]
+    assert "totals_check" not in out and "totals_note" not in out  # filtered: no check against the Total row
+    with pytest.raises(ValueError):
+        tables.query(t, where=["Cost is big"])
+    assert "hidden searches" in tables.query(t)["totals_note"]  # rows sum below Total: Account
+    assert tables.number("Max. CPC") is None and tables.NON_ADDITIVE.search("Default max. bid")
+
+
+def test_reduced_upload_is_stored_compressed_and_reads_back(monkeypatch):
+    big = TERMS.split(b"Total:")[0] + b"idle term,Calgary,0,5,0.00,0.00\n" * 2000 + b"Total:" + TERMS.split(b"Total:", 1)[1]
+    monkeypatch.setattr(uploads, "STORE_BYTES", 10_000)
+    assert uploads.prepare("text/csv", TERMS) == ("text/csv", TERMS, None)
+    mime, stored, note = uploads.prepare("text/csv", big)
+    assert stored[:2] == b"\x1f\x8b" and "kept 3 of 2,004 rows" in note
+    t = tables.parse(stored)
+    assert len(t.rows) == 3 and [r[0] for r in t.footer] == ["Total: Search terms", "Total: Account"]
+    assert tables.query(t)["totals_of_matching_rows"]["Cost"] == 290
+
 def test_upload_check_refuses_with_a_reason():
     assert uploads.check("a.CSV", 10) == "text/csv"
     assert uploads.check("shot.jpeg", 10) == "image/jpeg"

@@ -47,6 +47,7 @@ const STARTERS: Record<string, string[]> = {
     "Which searches should this website be able to win, and what stops it today?",
   ],
   ads_account: [
+    "Check the account from the reports I attached: one verdict, the 3 numbers that matter, then the top 5 actions.",
     "Before connecting the account, research the market so we know what good looks like.",
     "What will you check first once the account is connected, and why?",
   ],
@@ -141,21 +142,21 @@ export default function Chat(p: Props) {
   const [attached, setAttached] = useState<FileRef[]>([]);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState("");
-  const [uploadNote, setUploadNote] = useState("");
+  const [uploadNotes, setUploadNotes] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const checkRef = useRef<HTMLInputElement>(null);
 
   const upload = async (files: File[]) => {
     setUploadError("");
-    setUploadNote("");
+    setUploadNotes([]);
     const done: FileRef[] = [];
     for (const f of files) {
       setUploading((n) => n + 1);
       try {
         const ref = await api.uploadFile(p.project.id, f);
         done.push(ref);
-        if (ref.note) setUploadNote(`${f.name}: ${ref.note}`);
+        if (ref.note) setUploadNotes((n) => [...n, `${f.name}: ${ref.note!.replace(/^AllFix reduced this file on arrival: /, "")}`]);
         setAttached((a) => [...a, ref]);
       } catch (e) {
         setUploadError(`${f.name}: ${(e as Error).message}`);
@@ -183,7 +184,7 @@ export default function Chat(p: Props) {
     p.onSend([text || "I attached a file.", ...lines].join("\n"), mode);
     setAttached([]);
     setUploadError("");
-    setUploadNote("");
+    setUploadNotes([]);
   };
 
   return (
@@ -236,7 +237,7 @@ export default function Chat(p: Props) {
 
       <div className="px-6 pb-6 pt-2">
         <div className="mx-auto max-w-3xl rounded-[22px] border border-line bg-panel p-2.5 shadow-[0_12px_30px_-18px_rgba(22,23,26,.35)] focus-within:border-accent">
-          {(attached.length > 0 || uploading > 0 || uploadError || uploadNote) && (
+          {(attached.length > 0 || uploading > 0 || uploadError || uploadNotes.length > 0) && (
             <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1.5">
               {attached.map((f) => (
                 <span key={f.id} className="flex items-center gap-1 rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">
@@ -245,9 +246,9 @@ export default function Chat(p: Props) {
                     className="text-faint hover:text-fg">×</button>
                 </span>
               ))}
-              {uploading > 0 && <span className="text-xs text-faint">Uploading…</span>}
+              {uploading > 0 && <span className="text-xs text-faint">Uploading… big exports take a minute</span>}
               {uploadError && <span className="text-xs text-danger">{uploadError}</span>}
-              {uploadNote && <span className="text-xs text-faint">{uploadNote}</span>}
+              {uploadNotes.map((n) => <span key={n} className="w-full text-xs text-faint">{n}</span>)}
             </div>
           )}
           <textarea ref={boxRef} value={p.draft} rows={1} data-testid="chat-input"

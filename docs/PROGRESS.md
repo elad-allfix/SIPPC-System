@@ -202,6 +202,13 @@ Kept up to date while building, so work can resume if a session ends. Newest fir
 - Live check (subscription): an account check on two synthetic files read both, reported each file's type, dates and totals, caught that the files did not reconcile (different campaigns, 10x spend, the Total row) and put tracking first.
 - Known limit: a lone "1.000" reads as one, since English and Hebrew Google Ads exports use dot decimals.
 
+## 2026-10-14 · Reading real full-history exports (parallel session on Elad's PC)
+- Elad shared 11 full-history UI exports from his own account (kept on his PC only). Running the reader over them found: line breaks inside cells were lost (asset and change-history text glued together), "CA$" amounts did not parse (time series cost missing), sums across repeated levels were taken at face value (asset report rows add up to CA$2.57M against CA$1.25M spend), and four files were over the 10 MB upload limit (search terms 113 MB).
+- Fixed: csv reads the whole text so cells keep their line breaks; currency prefixes and ISO codes parse; bids and Quality Score columns are never summed; read_file warns when rows differ from the file's first Total row or sit at several Levels; known Google Ads reports come with how_to_read; new where (number filters) and group_by (sums per value).
+- Big files: uploads up to 250 MB; tables over 10 MB are condensed (rows with no cost, clicks or conversions left out, a note in the preamble) and gzip-stored. On the real files: search terms 113 MB -> 1.7 MB (79,571 of 692,048 rows, totals equal the file's own), change history 21 MB -> 1.2 MB, ad report 19 MB -> 0.2 MB. The prompt says to state a tracking gap once, then judge by cost, clicks, intent, quality and structure.
+- DB-backed tests could not run on the PC (no local Postgres); the 71 others pass.
+- Merged with the entry above into one version: kept the 20 MB reduce (with cost/conversion shares and full-file sums), Total-row checks and the Account check button; added this session's how_to_read, where, group_by, bid/quality columns never summed, gzip storage and the "say the tracking gap once" rule. A Level note replaces the first-Total-row warning.
+
 ## 2026-10-14 · Ignition entrance and setup
 - New front door (Elad picked "Ignition" of five mockups): full-screen AllFix wordmark with three amber orbits on a canvas and one Enter button, shown once per browser tab session. Enter opens the app, or setup when there are no projects.
 - The new-project pop-up is replaced by four full-screen questions (business, starting point with website when needed, market, goal with optional words); Enter key moves on. NewProject.tsx removed.

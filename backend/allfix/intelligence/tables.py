@@ -8,6 +8,7 @@ column names. Empty cells show as "--". Nothing here guesses: what cannot be par
 from __future__ import annotations
 
 import csv
+import gzip
 import io
 import math
 import re
@@ -18,10 +19,10 @@ MAX_LIMIT = 200
 csv.field_size_limit(16 * 1024 * 1024)  # long ad text and change-history cells
 EMPTY = {"", "--", "-", "—", "n/a", "N/A", " --"}
 TOTAL_PREFIXES = ("total", "סה\"כ", "סה״כ", "סך הכל", "סיכום")
-# Columns whose numbers are rates, averages or ratios: summing them is meaningless.
+# Columns whose numbers are rates, averages, bids or ratios: summing them is meaningless.
 NON_ADDITIVE = re.compile(
-    r"avg|average|rate|ctr|cpc|cpm|cpa|roas|share|%|/|per |position|score|ratio|"
-    r"ממוצע|שיעור|נתח|אחוז|ציון|יחס|עלות ל", re.I)
+    r"avg|average|rate|ctr|cpc|cpm|cpa|roas|share|%|/|per |position|score|ratio|bid|quality|"
+    r"ממוצע|שיעור|נתח|אחוז|ציון|יחס|עלות ל|הצעת מחיר", re.I)
 _CURRENCY = re.compile(r"[A-Z]{0,3}[₪$€£¥]|\b(?:ILS|USD|EUR|GBP|CAD|AUD|NZD|CHF|JPY|INR|BRL|MXN|ZAR)\b|[\s ]")
 
 
@@ -35,6 +36,8 @@ class Table:
 
 
 def decode(data: bytes) -> str:
+    if data.startswith(b"\x1f\x8b"):  # stored compressed (big uploads)
+        data = gzip.decompress(data)
     if data.startswith((b"\xff\xfe", b"\xfe\xff")):
         return data.decode("utf-16")
     if data.startswith(b"\xef\xbb\xbf"):
@@ -148,7 +151,7 @@ def additive_columns(table: Table, rows: list[list[str]]) -> list[int]:
     for i, c in enumerate(table.columns):
         if NON_ADDITIVE.search(c):
             continue
-        cells = [r[i].strip() for r in rows if r[i].strip() not in EMPTY]
+        cells = [r[i].strip() for r in rows[:5000] if r[i].strip() not in EMPTY]
         if not cells or any(x.endswith("%") for x in cells[:50]):
             continue
         if sum(number(x) is not None for x in cells) >= 0.9 * len(cells):
@@ -241,54 +244,125 @@ def check_totals(table: Table, sums: dict[str, float]) -> dict[str, Any]:
             "totals_mismatch": off}
 
 
+# Google Ads report titles (first preamble line) and what to look at first in each.
+REPORT_GUIDE: dict[str, str] = {
+    "search terms report": "What people actually typed. Group by Search term or Campaign; look for spend on "
+        "irrelevant intent (jobs, DIY, parts, for sale, competitors), terms that convert, and how much sits in "
+        "'Total: Other search terms' (hidden queries).",
+    "search keyword report": "Your keywords. Weight Quality Score parts (Exp. CTR, Ad relevance, Landing page exp.) "
+        "by Cost, split cost by Match type, and find keywords with spend but no conversions.",
+    "ad group report": "Structure. Count ad groups with and without spend; very many thin ad groups means too "
+        "little data per group to learn from.",
+    "campaign report": "Where the money goes: cost, clicks and conversions per campaign, bidding strategy and "
+        "budget limits.",
+    "ad report": "Ad copy. Count headlines and descriptions per spending ad (15 and 4 allowed), Ad strength, "
+        "pinning, and the Final URL each ad sends people to.",
+    "change history report": "What was changed and when. Group by month and by change type, look for bursts of "
+        "bid changes, and line them up with the time series before blaming or crediting a change.",
+    "negative keyword report": "Blocked searches. Look for duplicates copied campaign by campaign instead of shared "
+        "lists, and negatives that block searches you want.",
+    "device report": "Rows can repeat the same spend at campaign and ad group level: filter by Level before adding. "
+        "Compare cost and conversions by device.",
+    "landing page report": "Spend and clicks per page and per website. Mobile speed score and mobile-friendly "
+        "click rate show page problems.",
+    "auction insights report": "Who you compete with: impression share, overlap and outranking share per domain. "
+        "Percentages: never add them.",
+    "asset association report": "Sitelinks, callouts and other assets. The same spend repeats for every asset and "
+        "level shown, so never add Cost or Clicks across rows.",
+}
+
+
+def _guide(table: Table) -> dict[str, Any]:
+    title = (table.preamble[0] if table.preamble else "").strip().strip('"').lower()
+    return {"report": table.preamble[0], "how_to_read": REPORT_GUIDE[title]} if title in REPORT_GUIDE else {}
+
+
+_WHERE = re.compile(r"^\s*(.+?)\s*(>=|<=|!=|=|>|<)\s*(-?[\d.,]+)\s*$")
+_OPS = {">": float.__gt__, "<": float.__lt__, ">=": float.__ge__, "<=": float.__le__,
+        "=": lambda a, b: abs(a - b) < 1e-9, "!=": lambda a, b: abs(a - b) >= 1e-9}
+
+
+def _filters(table: Table, where: list[str]) -> list[tuple[int, Any, float]]:
+    out = []
+    for w in where:
+        m = _WHERE.match(w)
+        if not m:
+            raise ValueError(f"cannot read the filter {w!r}; write it like 'Cost > 50' or 'Conversions = 0'")
+        out.append((_column(table, m.group(1)), _OPS[m.group(2)], float(m.group(3).replace(",", ""))))
+    return out
+
+
 def query(table: Table, contains: str | None = None, sort_by: str | None = None,
           descending: bool = True, offset: int = 0, limit: int = 50,
-          columns: list[str] | None = None) -> dict[str, Any]:
+          columns: list[str] | None = None, where: list[str] | None = None,
+          group_by: str | None = None) -> dict[str, Any]:
     rows = table.rows
     if contains:
         needle = contains.lower()
         rows = [r for r in rows if any(needle in c.lower() for c in r)]
-    if sort_by:
-        k = _column(table, sort_by)
-        present = [r for r in rows if number(r[k]) is not None]
-        absent = [r for r in rows if number(r[k]) is None]
-        if present and len(present) >= len(absent):
-            rows = sorted(present, key=lambda r: number(r[k]), reverse=descending) + absent
-        else:  # a text column
-            rows = sorted(rows, key=lambda r: r[k].lower(), reverse=descending)
-    keep = [_column(table, c) for c in columns] if columns else list(range(len(table.columns)))
+    for k, op, v in _filters(table, where or []):
+        rows = [r for r in rows if (x := number(r[k])) is not None and op(x, v)]
+    add = additive_columns(table, rows)
+    totals = {table.columns[i]: round(sum(number(r[i]) or 0 for r in rows), 2) for i in add}
     limit = max(1, min(int(limit), MAX_LIMIT))
     offset = max(0, int(offset))
-    page = rows[offset:offset + limit]
-    totals = {table.columns[i]: round(sum(number(r[i]) or 0 for r in rows), 2)
-              for i in additive_columns(table, rows)}
     out: dict[str, Any] = {
+        **_guide(table),
         "preamble": table.preamble,
         "columns": table.columns,
         "rows_in_file": len(table.rows),
         "rows_matching": len(rows),
         "totals_of_matching_rows": totals,
         "offset": offset,
-        "rows": [{table.columns[i]: r[i] for i in keep} for r in page],
     }
+    if group_by:
+        g = _column(table, group_by)
+        groups: dict[str, list[float]] = {}
+        for r in rows:
+            acc = groups.setdefault(r[g], [0.0] * (len(add) + 1))
+            acc[0] += 1
+            for j, i in enumerate(add, 1):
+                acc[j] += number(r[i]) or 0
+        names = ["rows"] + [table.columns[i] for i in add]
+        want = ("rows" if sort_by.strip().lower() == "rows" else table.columns[_column(table, sort_by)]) if sort_by \
+            else ("Cost" if "Cost" in names else None)
+        key = names.index(want) if want in names else min(1, len(names) - 1)
+        ordered = sorted(groups.items(), key=lambda kv: kv[1][key], reverse=descending)
+        out["groups_total"] = len(ordered)
+        out["groups"] = [{table.columns[g]: name, **{c: round(v, 2) for c, v in zip(names, acc)}}
+                         for name, acc in ordered[offset:offset + limit]]
+        if offset + limit < len(ordered):
+            out["more"] = f"{len(ordered) - offset - limit} more groups; pass offset={offset + limit}"
+    else:
+        if sort_by:
+            k = _column(table, sort_by)
+            present = [r for r in rows if number(r[k]) is not None]
+            absent = [r for r in rows if number(r[k]) is None]
+            if present and len(present) >= len(absent):
+                rows = sorted(present, key=lambda r: number(r[k]), reverse=descending) + absent
+            else:  # a text column
+                rows = sorted(rows, key=lambda r: r[k].lower(), reverse=descending)
+        keep = [_column(table, c) for c in columns] if columns else list(range(len(table.columns)))
+        out["rows"] = [{table.columns[i]: r[i] for i in keep} for r in rows[offset:offset + limit]]
+        if offset + limit < len(rows):
+            out["more"] = f"{len(rows) - offset - limit} more rows; pass offset={offset + limit}"
     kind = report_type(table)
     if kind:
         out["report_type"] = kind
     level = _find(table.columns, LEVEL)
     if level is not None:
         by: dict[str, dict[str, float]] = {}
-        summed = additive_columns(table, rows)
         for r in rows:
             d = by.setdefault(r[level].strip() or "(blank)", {})
-            for i in summed:
+            for i in add:
                 d[table.columns[i]] = round(d.get(table.columns[i], 0) + (number(r[i]) or 0), 2)
         out["totals_by_level"] = by
+        if len(by) > 1 and not contains and not where:
+            out["level_note"] = "Rows are at more than one Level: filter by one Level before adding numbers."
     if table.footer:
         out["total_rows_in_file"] = [dict(zip(table.columns, r)) for r in table.footer]
-    if not contains:
+    if not contains and not where:
         out.update(check_totals(table, totals))
-    if offset + limit < len(rows):
-        out["more"] = f"{len(rows) - offset - limit} more rows; pass offset={offset + limit}"
     return out
 
 

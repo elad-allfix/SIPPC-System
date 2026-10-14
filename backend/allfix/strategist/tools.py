@@ -235,13 +235,20 @@ CLIENT_TOOLS: list[dict] = [
                        "(Google Ads report exports, CRM or job lists as CSV/TSV) come back as columns, the "
                        "preamble lines above the header (the export's title and date range), totals of the "
                        "additive columns for the matching rows, the file's own Total rows, and a page of rows. "
-                       "Filter with contains, order with sort_by (e.g. 'Cost'), page with offset. Screenshots "
-                       "come back as the image itself.",
+                       "Known Google Ads reports also come with how_to_read (what to check first) and a warning "
+                       "when rows do not add up to the file's own total. Filter with contains and where "
+                       "(numbers), group with group_by (sums per value, e.g. cost per Campaign), order with "
+                       "sort_by (e.g. 'Cost'), page with offset. Big exports are reduced on upload: the "
+                       "preamble says which rows were left out. Screenshots come back as the image itself.",
         "input_schema": {
             "type": "object",
             "properties": {
                 "file_id": {"type": "string"},
                 "contains": {"type": "string", "description": "Keep rows where any cell contains this text (case-insensitive)."},
+                "where": {"type": "array", "items": {"type": "string"},
+                          "description": "Number filters, all must hold, e.g. ['Cost > 50', 'Conversions = 0']."},
+                "group_by": {"type": "string", "description": "Column to group by; returns one row per value with "
+                             "the row count and sums of additive columns, ordered by sort_by (default Cost)."},
                 "sort_by": {"type": "string", "description": "Column name to order by (numbers sort numerically)."},
                 "descending": {"type": "boolean", "description": "Default true."},
                 "columns": {"type": "array", "items": {"type": "string"}, "description": "Only these columns in the rows."},

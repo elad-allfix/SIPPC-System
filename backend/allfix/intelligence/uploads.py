@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import gzip
 from collections import OrderedDict
 from pathlib import PurePath
 from typing import Any
@@ -46,7 +47,7 @@ def check(name: str, size: int) -> str:
 
 def prepare(mime: str, data: bytes) -> tuple[str, bytes, str | None]:
     """(mime, bytes to store, note) for an accepted upload: a table over STORE_BYTES is reduced
-    to the rows that matter, with a note saying what was kept."""
+    to the rows that matter, with a note saying what was kept, and stored gzip-compressed."""
     if mime.startswith("image/") or len(data) <= STORE_BYTES:
         return mime, data, None
     try:
@@ -54,7 +55,7 @@ def prepare(mime: str, data: bytes) -> tuple[str, bytes, str | None]:
     except (ValueError, StopIteration, csv.Error):
         raise UploadRefused(f"The file is larger than {STORE_BYTES // (1024 * 1024)} MB and is not a table "
                             "AllFix can reduce. Export a shorter date range or fewer columns.")
-    return "text/csv", reduced, note
+    return "text/csv", gzip.compress(reduced, compresslevel=6), note
 
 
 def _load(f: dict) -> tables.Table | str:
@@ -91,4 +92,5 @@ def read(f: dict, args: dict) -> Any:
         return out
     return {**about, **tables.query(parsed, args.get("contains"), args.get("sort_by"),
                                     args.get("descending", True), args.get("offset") or 0,
-                                    args.get("limit") or 50, args.get("columns"))}
+                                    args.get("limit") or 50, args.get("columns"),
+                                    args.get("where"), args.get("group_by"))}
