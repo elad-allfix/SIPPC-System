@@ -47,19 +47,56 @@ function Orbits({ dim = false }: { dim?: boolean }) {
   return <canvas ref={ref} aria-hidden className="pointer-events-none absolute inset-0 h-full w-full" />;
 }
 
-/** The front door: the name, one line, one button. */
-export function Entrance({ onEnter }: { onEnter: () => void }) {
+/** The front door: the name, one line, one button; then the choice between a new project and
+ * the dashboard (the projects already there). */
+export function Entrance({ projects, onNew, onDashboard }: {
+  projects: Project[]; onNew: () => void; onDashboard: () => void;
+}) {
+  const [choosing, setChoosing] = useState(false);
+  const latest = projects[0];
   return (
-    <div className="frame relative grid h-full place-items-center overflow-hidden bg-[#0a0b0d] px-4 text-center text-fg">
-      <Orbits />
-      <div className="relative z-10 flex flex-col items-center gap-6">
-        <div className="font-mono text-[11px] uppercase tracking-[0.32em] text-faint">Intelligence PPC System</div>
-        <h1 className="text-[clamp(56px,11vw,128px)] font-extrabold leading-[0.9] tracking-[-0.04em]">
-          AllFix<span className="text-accent">.</span>
-        </h1>
-        <div className="text-[15px] text-faint">Every click, accounted for.</div>
-        <button autoFocus onClick={onEnter} className="cta mt-2" data-testid="enter">Enter</button>
-      </div>
+    <div className="frame relative grid h-full place-items-center overflow-auto bg-[#0a0b0d] px-4 text-center text-fg">
+      <Orbits dim={choosing} />
+      {!choosing ? (
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          <div className="font-mono text-[11px] uppercase tracking-[0.32em] text-faint">Intelligence PPC System</div>
+          <h1 className="text-[clamp(56px,11vw,128px)] font-extrabold leading-[0.9] tracking-[-0.04em]">
+            AllFix<span className="text-accent">.</span>
+          </h1>
+          <div className="text-[15px] text-faint">Every click, accounted for.</div>
+          <button autoFocus onClick={() => setChoosing(true)} className="cta mt-2" data-testid="enter">Enter</button>
+        </div>
+      ) : (
+        <div className="relative z-10 flex w-full max-w-[760px] flex-col items-center gap-8 py-12">
+          <div className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight">
+            <span className="h-6 w-6 rounded-[7px] shadow-[inset_0_1px_0_rgba(255,255,255,.35)]"
+              style={{ background: "linear-gradient(145deg, var(--accent), #b86d0c)" }} />
+            AllFix
+          </div>
+          <div className="grid w-full gap-3 sm:grid-cols-2">
+            <button autoFocus onClick={onNew} data-testid="choose-new"
+              className="group flex min-h-56 flex-col justify-between rounded-3xl border border-accent bg-[#1c160d] p-7 text-left transition hover:-translate-y-0.5 hover:shadow-[0_0_50px_rgba(224,148,34,.25)]">
+              <span className="step-glow grid h-12 w-12 place-items-center rounded-full bg-accent text-2xl font-bold text-accent-fg">+</span>
+              <span>
+                <b className="block text-2xl font-bold tracking-[-0.03em]">New project</b>
+                <span className="mt-1 block text-sm text-faint">Four quick questions</span>
+              </span>
+            </button>
+            <button onClick={onDashboard} disabled={!latest} data-testid="choose-dashboard"
+              className="flex min-h-56 flex-col justify-between rounded-3xl border border-line bg-panel p-7 text-left transition enabled:hover:-translate-y-0.5 enabled:hover:border-faint disabled:opacity-50">
+              <span className="grid h-12 w-12 place-items-center rounded-full border border-line font-mono text-sm text-faint">
+                {projects.length}
+              </span>
+              <span>
+                <b className="block text-2xl font-bold tracking-[-0.03em]">Dashboard</b>
+                <span className="mt-1 block truncate text-sm text-faint">
+                  {latest ? `${projects.length === 1 ? "1 project" : `${projects.length} projects`} · ${latest.name}` : "No projects yet"}
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
