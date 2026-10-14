@@ -24,7 +24,7 @@ function UserTurn({ text }: { text: string }) {
   const body = lines.filter((l) => !ATTACHED.test(l.trim())).join("\n").trim();
   return (
     <div className="flex flex-col items-end gap-1.5">
-      {body && <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-sunken px-4 py-2.5 text-[15px]">{body}</div>}
+      {body && <div className="max-w-[80%] whitespace-pre-wrap rounded-[22px] rounded-br-md bg-sunken px-4 py-3 text-[15px]">{body}</div>}
       {files.length > 0 && (
         <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
           {files.map((m) => <span key={m[2]} className="rounded-full border border-line px-2.5 py-0.5 text-xs text-muted">{m[1]}</span>)}
@@ -78,36 +78,47 @@ function ActivityLine({ a }: { a: Activity }) {
   );
 }
 
+/** The answer comes first. Steps, reasoning and sources fold behind one small "Details" link;
+ * while the strategist works, only its latest few steps show. */
 function AssistantTurn({ t }: { t: Turn }) {
-  const [showThinking, setShowThinking] = useState(false);
+  const [open, setOpen] = useState(false);
   const acts = t.activity ?? [];
+  const sources = t.sources ?? [];
+  const hasDetails = acts.length > 0 || !!t.thinking || sources.length > 0;
   return (
     <div className="space-y-3">
-      {(acts.length > 0 || t.thinking) && (
-        <div className="space-y-1 rounded-lg border border-line/70 bg-sunken/50 px-3 py-2">
-          {t.thinking && (
-            <button onClick={() => setShowThinking((s) => !s)} className="text-[13px] text-faint hover:text-muted">
-              {showThinking ? "Hide reasoning summary" : "Show reasoning summary"}
-            </button>
+      {t.streaming && acts.length > 0 && !open && (
+        <div className="space-y-1">{acts.slice(-3).map((a) => <ActivityLine key={a.id} a={a} />)}</div>
+      )}
+      {t.text ? <Markdown>{t.text}</Markdown> : t.streaming && !t.error ? (
+        <div className="flex items-center gap-2 text-sm text-faint"><span className="h-2 w-2 animate-pulse rounded-full bg-accent" />Working…</div>
+      ) : null}
+      {t.error && <div className="rounded-xl border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{t.error}</div>}
+      {hasDetails && !t.streaming && (
+        <button onClick={() => setOpen((o) => !o)} className="text-xs text-faint hover:text-fg">
+          {open ? "Hide details" : "Details"}
+        </button>
+      )}
+      {open && (
+        <div className="space-y-3 rounded-2xl bg-sunken px-4 py-3">
+          {t.thinking && <div className="whitespace-pre-wrap text-[13px] text-muted">{t.thinking}</div>}
+          {acts.length > 0 && <div className="space-y-1">
+            {acts.slice(-60).map((a) => <ActivityLine key={a.id} a={a} />)}
+            {acts.length > 60 && <div className="text-xs text-faint">{acts.length - 60} earlier steps not shown</div>}
+          </div>}
+          {sources.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {sources.slice(0, 30).map((s) => (
+                <a key={s.url} href={s.url} target="_blank" rel="noreferrer noopener" title={s.title ?? s.url}
+                  className="max-w-56 truncate rounded-full border border-line bg-panel px-2.5 py-0.5 text-xs text-muted hover:border-accent hover:text-fg">
+                  {hostOf(s.url)}
+                </a>
+              ))}
+            </div>
           )}
-          {showThinking && t.thinking && <div className="whitespace-pre-wrap pb-1 text-[13px] text-muted">{t.thinking}</div>}
-          {acts.slice(-60).map((a) => <ActivityLine key={a.id} a={a} />)}
-          {acts.length > 60 && <div className="text-xs text-faint">{acts.length - 60} earlier steps not shown</div>}
+          {t.model && <div className="text-[11px] text-faint">{t.mode === "deep" ? "Deep" : "Fast"} · {t.model}</div>}
         </div>
       )}
-      {t.text ? <Markdown>{t.text}</Markdown> : t.streaming && !t.error ? <div className="text-sm text-faint">Working…</div> : null}
-      {t.error && <div className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">{t.error}</div>}
-      {t.sources && t.sources.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {t.sources.slice(0, 30).map((s) => (
-            <a key={s.url} href={s.url} target="_blank" rel="noreferrer noopener" title={s.title ?? s.url}
-              className="max-w-56 truncate rounded-full border border-line px-2.5 py-0.5 text-xs text-muted hover:border-accent hover:text-fg">
-              {hostOf(s.url)}
-            </a>
-          ))}
-        </div>
-      )}
-      {t.model && !t.streaming && <div className="text-[11px] text-faint">{t.mode === "deep" ? "Deep" : "Standard"} · {t.model}</div>}
     </div>
   );
 }
@@ -154,18 +165,18 @@ export default function Chat(p: Props) {
   };
 
   return (
-    <section className="flex h-full min-w-0 flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-line px-6 py-3">
+    <section className="sheet flex min-w-0 flex-1 flex-col max-md:min-h-[80vh]">
+      <header className="flex items-center justify-between gap-3 px-7 pb-2 pt-5">
         <div className="relative min-w-0">
-          <button onClick={() => setConvOpen((o) => !o)} className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+          <button onClick={() => setConvOpen((o) => !o)} className="flex min-w-0 items-center gap-1.5 text-lg font-bold tracking-tight">
             <span className="truncate">{p.conversation?.title ?? "New conversation"}</span>
             <svg className="h-4 w-4 shrink-0 text-faint" viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" /></svg>
           </button>
           {convOpen && (
-            <div className="absolute z-20 mt-2 max-h-80 w-80 overflow-auto rounded-lg border border-line bg-panel p-1 shadow-lg scroll-thin">
+            <div className="absolute z-20 mt-2 max-h-80 w-80 overflow-auto rounded-2xl border border-line bg-panel p-1.5 shadow-xl scroll-thin">
               {p.conversations.map((c) => (
                 <button key={c.id} onClick={() => { setConvOpen(false); p.onSelectConversation(c.id); }}
-                  className={`block w-full truncate rounded-md px-2.5 py-1.5 text-left text-sm hover:bg-sunken ${c.id === p.conversation?.id ? "text-accent" : ""}`}>
+                  className={`block w-full truncate rounded-xl px-3 py-2 text-left text-sm hover:bg-sunken ${c.id === p.conversation?.id ? "font-semibold text-accent-ink" : ""}`}>
                   {c.title}
                 </button>
               ))}
@@ -173,21 +184,19 @@ export default function Chat(p: Props) {
             </div>
           )}
         </div>
-        <Button variant="outline" onClick={p.onNewConversation} disabled={p.busy}>New conversation</Button>
+        <Button variant="primary" onClick={p.onNewConversation} disabled={p.busy}>New question</Button>
       </header>
 
       <div className="flex-1 overflow-auto scroll-thin">
-        <div className="mx-auto max-w-3xl space-y-8 px-6 py-8">
+        <div className="mx-auto max-w-3xl space-y-8 px-7 py-6">
           {p.turns.length === 0 && (
-            <div className="pt-10">
-              <h1 className="text-xl font-semibold tracking-tight">{p.project.name}</h1>
-              <p className="mt-1 text-sm text-muted">
-                {p.project.objective || "No objective recorded yet."} Ask anything, or start with one of these.
-              </p>
+            <div className="pt-8">
+              <h1 className="text-3xl font-bold tracking-[-0.035em]">{p.project.name}</h1>
+              {p.project.objective && <p className="mt-2 text-muted">{p.project.objective}</p>}
               <div className="mt-6 grid gap-2">
                 {(STARTERS[p.project.entry_path] ?? STARTERS.new_niche).map((s) => (
                   <button key={s} onClick={() => p.setDraft(s)}
-                    className="rounded-xl border border-line bg-panel px-4 py-3 text-left text-sm hover:border-accent">
+                    className="rounded-2xl bg-sunken px-4 py-3 text-left text-sm hover:ring-1 hover:ring-accent">
                     {s}
                   </button>
                 ))}
@@ -203,8 +212,8 @@ export default function Chat(p: Props) {
         </div>
       </div>
 
-      <div className="border-t border-line px-6 py-4">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-line bg-panel p-2 focus-within:border-accent">
+      <div className="px-6 pb-6 pt-2">
+        <div className="mx-auto max-w-3xl rounded-[22px] border border-line bg-panel p-2.5 shadow-[0_12px_30px_-18px_rgba(22,23,26,.35)] focus-within:border-accent">
           {(attached.length > 0 || uploading > 0 || uploadError) && (
             <div className="flex flex-wrap items-center gap-1.5 px-2 pb-1.5">
               {attached.map((f) => (
@@ -226,7 +235,7 @@ export default function Chat(p: Props) {
                 f.name && f.name !== "image.png" ? f : new File([f], `screenshot-${Date.now()}-${i}.png`, { type: f.type }))); }
             }}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder="Ask the strategist…"
+            placeholder="Ask anything"
             className="block max-h-60 w-full resize-none bg-transparent px-2 py-1.5 text-[15px] outline-none placeholder:text-faint" />
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2">
@@ -237,18 +246,19 @@ export default function Chat(p: Props) {
               className="rounded-md p-1.5 text-muted hover:bg-sunken hover:text-fg">
               <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M15.5 9.5l-5.8 5.8a3.5 3.5 0 01-5-5l6.4-6.4a2.3 2.3 0 013.3 3.3l-6.3 6.3a1.2 1.2 0 01-1.7-1.7L12 6.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </button>
-            <div className="flex rounded-lg bg-sunken p-0.5 text-xs" role="radiogroup" aria-label="Mode">
+            <div className="flex rounded-full bg-sunken p-0.5 text-xs" role="radiogroup" aria-label="Mode">
               {(["standard", "deep"] as Mode[]).map((m) => (
                 <button key={m} role="radio" aria-checked={mode === m} onClick={() => setMode(m)}
-                  title={m === "deep" ? "Deeper reasoning for hard strategic questions; slower" : "Default"}
-                  className={`rounded-md px-2.5 py-1 capitalize ${mode === m ? "bg-panel font-medium shadow-sm" : "text-muted"}`}>
-                  {m}
+                  title={m === "deep" ? "Deeper reasoning for hard strategic questions; slower" : "Quick answers"}
+                  className={`rounded-full px-3 py-1 ${mode === m ? "bg-panel font-semibold shadow-sm" : "text-faint"}`}>
+                  {m === "deep" ? "Deep" : "Fast"}
                 </button>
               ))}
             </div>
             </div>
             {p.busy ? <Button variant="outline" onClick={p.onStop}>Stop</Button>
-              : <Button variant="primary" onClick={send} disabled={(!p.draft.trim() && attached.length === 0) || uploading > 0} data-testid="send">Send</Button>}
+              : <button onClick={send} disabled={(!p.draft.trim() && attached.length === 0) || uploading > 0} data-testid="send"
+                  aria-label="Send" className="grid h-10 w-10 place-items-center rounded-full bg-ink text-lg font-bold text-ink-fg transition hover:opacity-90 disabled:opacity-30">↑</button>}
           </div>
         </div>
       </div>

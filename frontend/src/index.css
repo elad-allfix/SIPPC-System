@@ -1,34 +1,49 @@
 @import "tailwindcss";
 
+/* No .dark class is ever set now, so `dark:` utilities stay off even when the OS is dark. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Semantic colours. Light by default, dark when <html class="dark">. */
-:root {
-  --bg: #fafafa;
+/* Orbit look: a dark graphite frame (top bar, steps) holding light "sheets" (chat, stage panel).
+   Sheet colours are the defaults; anything inside .frame gets the dark set. Amber is a signal,
+   used for the current step and focus; primary actions are ink. A .sheet inside the frame
+   takes the light set back. */
+:root, .sheet {
+  --bg: #fcfcfb;
   --panel: #ffffff;
-  --sunken: #f4f4f5;
-  --fg: #18181b;
-  --muted: #71717a;
-  --faint: #a1a1aa;
-  --line: #e4e4e7;
-  --accent: #4f46e5;
-  --accent-soft: #eef2ff;
-  --accent-fg: #ffffff;
-  --danger: #dc2626;
+  --sunken: #f3f3f1;
+  --fg: #16171a;
+  --muted: #4a4c55;
+  --faint: #8a8c95;
+  --line: #e8e8e5;
+  --accent: #e09422;
+  --accent-ink: #9a5d00;
+  --accent-soft: #fbf1df;
+  --accent-fg: #201300;
+  --ink: #16171a;
+  --ink-fg: #fcfcfb;
+  --danger: #c2410c;
+  --frame: #121316;
+  --frame-2: #1b1c21;
+  --frame-line: #2a2c33;
+  --frame-fg: #ecebe8;
+  --frame-muted: #8d8f98;
+  --ev-verified: #1f8a5f;
+  --ev-observed: #2d6fb8;
+  --ev-estimate: #7a5cc4;
+  --ev-hypothesis: #c47a12;
+  --ev-assumption: #9a9ca4;
+  --ev-unknown: #c2415d;
   color-scheme: light;
 }
-.dark {
-  --bg: #0b0b0d;
-  --panel: #131316;
-  --sunken: #1b1b1f;
-  --fg: #ececef;
-  --muted: #a1a1aa;
-  --faint: #6b6b74;
-  --line: #27272a;
-  --accent: #818cf8;
-  --accent-soft: #1e1b4b;
-  --accent-fg: #0b0b0d;
-  --danger: #f87171;
+.frame {
+  --bg: var(--frame);
+  --panel: var(--frame-2);
+  --sunken: #23252b;
+  --fg: var(--frame-fg);
+  --muted: #b4b6bd;
+  --faint: var(--frame-muted);
+  --line: var(--frame-line);
+  --accent-soft: #3a2a12;
   color-scheme: dark;
 }
 
@@ -41,31 +56,54 @@
   --color-faint: var(--faint);
   --color-line: var(--line);
   --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-accent-fg: var(--accent-fg);
+  --color-ink: var(--ink);
+  --color-ink-fg: var(--ink-fg);
   --color-danger: var(--danger);
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-frame: var(--frame);
+  --font-sans: "Sora", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 html, body, #root { height: 100%; }
-body { background: var(--bg); color: var(--fg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+body { background: var(--frame); color: var(--fg); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* A light sheet laid on the dark frame */
+.sheet {
+  background: var(--bg);
+  color: var(--fg);
+  border-radius: 20px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.10), 0 -1px 0 0 rgba(255,214,150,.35), 0 30px 60px -30px rgba(0,0,0,.7);
+  overflow: hidden;
+}
+
+/* The current step's number glows */
+.step-glow { box-shadow: 0 0 0 4px rgba(224,148,34,.18), 0 0 22px rgba(224,148,34,.55); }
 
 /* Rendered markdown from the strategist */
 .prose-af { line-height: 1.65; font-size: 0.9375rem; }
 .prose-af > * + * { margin-top: 0.75em; }
-.prose-af h1, .prose-af h2, .prose-af h3 { font-weight: 600; margin-top: 1.25em; }
-.prose-af h1 { font-size: 1.15rem; } .prose-af h2 { font-size: 1.05rem; } .prose-af h3 { font-size: 0.975rem; }
+.prose-af h1, .prose-af h2, .prose-af h3 { font-weight: 700; margin-top: 1.25em; letter-spacing: -0.02em; }
+.prose-af h1 { font-size: 1.5rem; line-height: 1.2; } .prose-af h2 { font-size: 1.2rem; } .prose-af h3 { font-size: 1rem; }
+.prose-af > h1:first-child, .prose-af > h2:first-child { margin-top: 0; }
 .prose-af ul { list-style: disc; padding-left: 1.25rem; }
 .prose-af ol { list-style: decimal; padding-left: 1.25rem; }
 .prose-af li + li { margin-top: 0.25em; }
-.prose-af a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.prose-af a { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 2px; }
 .prose-af code { background: var(--sunken); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85em; }
-.prose-af pre { background: var(--sunken); padding: 0.75rem; border-radius: 8px; overflow-x: auto; }
+.prose-af pre { background: var(--sunken); padding: 0.75rem; border-radius: 10px; overflow-x: auto; }
 .prose-af pre code { background: none; padding: 0; }
-.prose-af table { border-collapse: collapse; font-size: 0.85rem; display: block; overflow-x: auto; }
-.prose-af th, .prose-af td { border: 1px solid var(--line); padding: 0.35rem 0.6rem; text-align: left; vertical-align: top; }
-.prose-af th { background: var(--sunken); font-weight: 600; }
-.prose-af blockquote { border-left: 3px solid var(--line); padding-left: 0.75rem; color: var(--muted); }
+.prose-af table { border-collapse: separate; border-spacing: 0; font-size: 0.85rem; display: block; overflow-x: auto; }
+.prose-af th, .prose-af td { border-bottom: 1px solid var(--line); padding: 0.45rem 0.75rem; text-align: left; vertical-align: top; }
+.prose-af th { color: var(--faint); font-weight: 500; font-size: 0.75rem; }
+.prose-af blockquote { border-left: 3px solid var(--accent); padding-left: 0.75rem; color: var(--muted); }
 .prose-af strong { font-weight: 600; }
 
 .scroll-thin { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .sheet { animation: sheet-lift .45s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes sheet-lift { from { transform: translateY(8px); } to { transform: none; } }
+}

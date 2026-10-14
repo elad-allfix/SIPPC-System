@@ -2,14 +2,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Label } from "../types";
 
-const LABEL_STYLE: Record<Label, string> = {
-  verified: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25",
-  observed: "bg-sky-500/12 text-sky-700 dark:text-sky-300 ring-sky-500/25",
-  estimate: "bg-amber-500/12 text-amber-700 dark:text-amber-300 ring-amber-500/25",
-  assumption: "bg-zinc-500/12 text-zinc-700 dark:text-zinc-300 ring-zinc-500/25",
-  hypothesis: "bg-violet-500/12 text-violet-700 dark:text-violet-300 ring-violet-500/25",
-  unknown: "bg-rose-500/12 text-rose-700 dark:text-rose-300 ring-rose-500/25",
+/** How sure we are, in plain words, strongest first; colours come from the --ev-* tokens. */
+export const LABEL_ORDER: Label[] = ["verified", "observed", "estimate", "hypothesis", "assumption", "unknown"];
+export const LABEL_NAME: Record<Label, string> = {
+  verified: "Checked", observed: "Seen", estimate: "Estimate", hypothesis: "To test", assumption: "Assumed", unknown: "Unknown",
 };
+export const labelColor = (l: Label) => `var(--ev-${LABEL_NAME[l] ? l : "unknown"})`;
 
 export const LABEL_HELP: Record<Label, string> = {
   verified: "Checked against a primary source",
@@ -20,12 +18,35 @@ export const LABEL_HELP: Record<Label, string> = {
   unknown: "Not known yet",
 };
 
+export function LabelDot({ label, className = "" }: { label: Label; className?: string }) {
+  return <span title={`${LABEL_NAME[label] ?? label}: ${LABEL_HELP[label] ?? ""}`} aria-label={LABEL_NAME[label] ?? label}
+    className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${className}`} style={{ background: labelColor(label) }} />;
+}
+
 export function LabelBadge({ label }: { label: Label }) {
   return (
-    <span title={LABEL_HELP[label]}
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${LABEL_STYLE[label] ?? LABEL_STYLE.unknown}`}>
-      {label}
+    <span title={LABEL_HELP[label]} className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium text-muted">
+      <LabelDot label={label} className="!h-2 !w-2" />{LABEL_NAME[label] ?? label}
     </span>
+  );
+}
+
+/** Thin stacked bar of how many items sit at each evidence level, with a short key. */
+export function EvidenceScale({ labels }: { labels: Label[] }) {
+  if (labels.length === 0) return null;
+  const counts = LABEL_ORDER.map((l) => [l, labels.filter((x) => x === l).length] as const).filter(([, n]) => n > 0);
+  return (
+    <div className="space-y-2">
+      <div className="flex h-2 gap-0.5 overflow-hidden rounded-full" role="img"
+        aria-label={counts.map(([l, n]) => `${n} ${LABEL_NAME[l]}`).join(", ")}>
+        {counts.map(([l, n]) => <i key={l} className="block h-full" style={{ flex: n, background: labelColor(l) }} />)}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-faint">
+        {counts.map(([l, n]) => (
+          <span key={l} className="inline-flex items-center gap-1.5"><LabelDot label={l} className="!h-2 !w-2" />{LABEL_NAME[l]} {n}</span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -42,10 +63,10 @@ export function Markdown({ children }: { children: string }) {
 
 export function Button({ variant = "ghost", className = "", ...p }:
   React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "outline" }) {
-  const base = "inline-flex items-center justify-center gap-1.5 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
+  const base = "inline-flex items-center justify-center gap-1.5 rounded-full text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed";
   const v = {
-    primary: "bg-accent text-accent-fg px-3.5 py-2 hover:opacity-90",
-    outline: "border border-line px-3 py-1.5 hover:bg-sunken",
+    primary: "bg-ink text-ink-fg px-4 py-2 font-semibold hover:opacity-90",
+    outline: "border border-line bg-panel px-3.5 py-1.5 hover:bg-sunken",
     ghost: "px-2.5 py-1.5 text-muted hover:text-fg hover:bg-sunken",
   }[variant];
   return <button {...p} className={`${base} ${v} ${className}`} />;

@@ -3,7 +3,7 @@ import { api, chatStream } from "./api";
 import Chat from "./components/Chat";
 import KnowledgeView from "./components/KnowledgeView";
 import NewProject from "./components/NewProject";
-import Rail from "./components/Rail";
+import { Steps, TopBar } from "./components/Rail";
 import StagePanel from "./components/StagePanel";
 import type { Conversation, Health, Item, Mode, Project, Stage, Turn } from "./types";
 
@@ -13,8 +13,6 @@ const store = {
 };
 
 export default function App() {
-  const [dark, setDark] = useState(() => store.get("allfix.theme") === "dark" ||
-    (store.get("allfix.theme") === null && window.matchMedia?.("(prefers-color-scheme: dark)").matches));
   const [stages, setStages] = useState<Stage[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [project, setProject] = useState<Project | null>(null);
@@ -30,11 +28,6 @@ export default function App() {
   const [health, setHealth] = useState<Health | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    store.set("allfix.theme", dark ? "dark" : "light");
-  }, [dark]);
 
   const refreshProject = useCallback(async (id: string) => {
     const p = await api.project(id);
@@ -182,7 +175,7 @@ export default function App() {
 
   if (loadError) {
     return (
-      <div className="grid h-full place-items-center p-8 text-center">
+      <div className="frame grid h-full place-items-center p-8 text-center text-fg">
         <div>
           <div className="text-lg font-semibold">AllFix could not reach its server</div>
           <div className="mt-1 text-sm text-muted">{loadError}</div>
@@ -193,25 +186,29 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-full">
-      <Rail projects={projects} project={project} stages={stages} stage={stage} view={view} health={health} dark={dark}
-        onSelectProject={(id) => { setView("chat"); openProject(id); }}
-        onNewProject={() => setCreating(true)}
-        onSelectStage={(n) => { setView("chat"); setStage(n); }}
-        onKnowledge={() => setView("knowledge")}
-        onToggleTheme={() => setDark((d) => !d)} />
-      {view === "knowledge" ? <KnowledgeView /> : project ? (
-        <>
-          <Chat project={project} conversations={conversations} conversation={conversation} turns={turns} busy={busy}
-            draft={draft} setDraft={setDraft} onSend={send} onStop={() => abortRef.current?.abort()}
-            onNewConversation={newConversation} onSelectConversation={selectConversation} />
-          <StagePanel project={project} stage={stages.find((s) => s.n === stage)} stages={stages} items={items}
-            onQuote={quote} onStatus={setStatus} onSelectStage={setStage}
-            onAsk={(text) => { setView("chat"); setDraft(text); }} />
-        </>
-      ) : <div className="flex-1" />}
+    <>
+      <div className="frame flex h-full flex-col gap-3 bg-bg p-3 text-fg max-md:h-auto max-md:min-h-full">
+        <TopBar projects={projects} project={project} view={view} health={health}
+          onSelectProject={(id) => { setView("chat"); openProject(id); }}
+          onNewProject={() => setCreating(true)}
+          onKnowledge={() => setView("knowledge")} />
+        <div className="flex min-h-0 flex-1 gap-3 max-md:flex-col">
+          <Steps project={project} stages={stages} stage={stage} view={view}
+            onSelectStage={(n) => { setView("chat"); setStage(n); }} />
+          {view === "knowledge" ? <div className="sheet flex min-w-0 flex-1 flex-col"><KnowledgeView /></div> : project ? (
+            <>
+              <Chat project={project} conversations={conversations} conversation={conversation} turns={turns} busy={busy}
+                draft={draft} setDraft={setDraft} onSend={send} onStop={() => abortRef.current?.abort()}
+                onNewConversation={newConversation} onSelectConversation={selectConversation} />
+              <StagePanel project={project} stage={stages.find((s) => s.n === stage)} stages={stages} items={items}
+                onQuote={quote} onStatus={setStatus} onSelectStage={setStage}
+                onAsk={(text) => { setView("chat"); setDraft(text); }} />
+            </>
+          ) : <div className="flex-1" />}
+        </div>
+      </div>
       {creating && <NewProject onCreate={createProject} onCancel={() => setCreating(false)} canCancel={projects.length > 0} />}
-    </div>
+    </>
   );
 }
 

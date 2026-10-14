@@ -3,7 +3,8 @@ import type { Item, Project, Stage } from "../types";
 import Connectivity from "./Connectivity";
 import Ledger from "./Ledger";
 import Rounds from "./Rounds";
-import { Button, ENTRY_PATH_TITLE, KIND_TITLE, LabelBadge, Markdown, hostOf } from "./ui";
+import { stageName } from "./Rail";
+import { Button, ENTRY_PATH_TITLE, EvidenceScale, KIND_TITLE, LabelBadge, LabelDot, Markdown, hostOf } from "./ui";
 
 interface Props {
   project: Project;
@@ -20,20 +21,18 @@ function ItemCard({ item, onQuote, onStatus }: { item: Item; onQuote: (i: Item) 
   const [open, setOpen] = useState(false);
   const closed = ["refuted", "dropped", "superseded", "done"].includes(item.status);
   return (
-    <div className={`rounded-xl border border-line bg-panel p-3 ${closed ? "opacity-60" : ""}`} data-testid="item-card">
-      <button onClick={() => setOpen((o) => !o)} className="block w-full text-left">
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-sm font-medium leading-snug">{item.title}</span>
-          <LabelBadge label={item.label} />
-        </div>
-        <div className="mt-1 flex gap-2 text-[11px] text-faint">
-          {item.confidence && <span>{item.confidence} confidence</span>}
-          {item.status !== "open" && <span>· {item.status}</span>}
-          {item.sources?.length > 0 && <span>· {item.sources.length} source{item.sources.length > 1 ? "s" : ""}</span>}
-        </div>
+    <div className={`rounded-2xl bg-sunken p-3.5 transition ${open ? "ring-1 ring-line" : "hover:ring-1 hover:ring-line"} ${closed ? "opacity-55" : ""}`} data-testid="item-card">
+      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-start gap-2.5 text-left">
+        <LabelDot label={item.label} className="mt-1.5" />
+        <span className={`text-sm font-semibold leading-snug ${closed ? "line-through decoration-faint" : ""}`}>{item.title}</span>
       </button>
       {open && (
         <div className="mt-3 space-y-3 border-t border-line pt-3">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-faint">
+            <LabelBadge label={item.label} />
+            {item.confidence && <span>{item.confidence} confidence</span>}
+            {item.status !== "open" && <span>{item.status}</span>}
+          </div>
           <div className="text-[13px]"><Markdown>{item.body}</Markdown></div>
           {item.data && Object.keys(item.data).length > 0 && (
             <dl className="space-y-1 text-xs">
@@ -47,22 +46,22 @@ function ItemCard({ item, onQuote, onStatus }: { item: Item; onQuote: (i: Item) 
             <ul className="space-y-0.5 text-xs">
               {item.sources.map((s, i) => (
                 <li key={i} className="truncate text-muted">
-                  {s.url ? <a href={s.url} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">{s.title || hostOf(s.url)}</a>
+                  {s.url ? <a href={s.url} target="_blank" rel="noreferrer noopener" className="text-accent-ink hover:underline">{s.title || hostOf(s.url)}</a>
                     : s.kb ? <span>Knowledge {s.kb}</span> : null}
                   {s.note ? <span>{s.url || s.kb ? " · " : ""}{s.note}</span> : null}
                 </li>
               ))}
             </ul>
           )}
-          <div className="flex flex-wrap gap-1">
-            <Button variant="outline" className="!px-2 !py-1 !text-xs" onClick={() => onQuote(item)}>Ask about this</Button>
+          <div className="flex flex-wrap gap-1.5">
             {item.status === "open" && <>
-              <Button className="!px-2 !py-1 !text-xs" onClick={() => onStatus(item, "confirmed")}>Confirm</Button>
-              <Button className="!px-2 !py-1 !text-xs" onClick={() => onStatus(item, "refuted")}>Refute</Button>
-              <Button className="!px-2 !py-1 !text-xs" onClick={() => onStatus(item, "dropped")}>Drop</Button>
+              <Button variant="primary" className="!px-3 !py-1 !text-xs" onClick={() => onStatus(item, "confirmed")}>Keep</Button>
+              <Button variant="outline" className="!px-3 !py-1 !text-xs" onClick={() => onStatus(item, "refuted")}>Wrong</Button>
+              <Button variant="outline" className="!px-3 !py-1 !text-xs" onClick={() => onStatus(item, "dropped")}>Drop</Button>
             </>}
+            <Button variant="outline" className="!px-3 !py-1 !text-xs" onClick={() => onQuote(item)}>Ask</Button>
             {item.status !== "open" && item.status !== "superseded" &&
-              <Button className="!px-2 !py-1 !text-xs" onClick={() => onStatus(item, "open")}>Reopen</Button>}
+              <Button variant="outline" className="!px-3 !py-1 !text-xs" onClick={() => onStatus(item, "open")}>Reopen</Button>}
           </div>
         </div>
       )}
@@ -77,7 +76,7 @@ function Grouped({ items, ...rest }: { items: Item[]; onQuote: (i: Item) => void
     <div className="space-y-5">
       {[...groups.entries()].map(([kind, list]) => (
         <div key={kind}>
-          <h3 className="mb-2 text-[11px] font-medium uppercase tracking-wider text-faint">{KIND_TITLE[kind] ?? kind} · {list.length}</h3>
+          <h3 className="mb-2 flex justify-between text-xs font-semibold text-faint"><span>{KIND_TITLE[kind] ?? kind}</span><span className="tabular-nums">{list.length}</span></h3>
           <div className="space-y-2">{list.map((i) => <ItemCard key={i.id} item={i} {...rest} />)}</div>
         </div>
       ))}
@@ -86,7 +85,7 @@ function Grouped({ items, ...rest }: { items: Item[]; onQuote: (i: Item) => void
 }
 
 function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">{children}</div>;
+  return <div className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-faint">{children}</div>;
 }
 
 export default function StagePanel(p: Props) {
@@ -161,18 +160,21 @@ export default function StagePanel(p: Props) {
       </div>
     );
   } else {
-    body = p.items.length === 0 ? <Empty>Nothing saved here yet. The strategist saves findings as it works.</Empty>
+    body = p.items.length === 0 ? <Empty>Findings appear here as the strategist works.</Empty>
       : <Grouped items={p.items} {...actions} />;
   }
 
+  const showScale = s.n !== 1 && s.n !== 7 && p.items.length > 0;
   return (
-    <aside className="flex h-full w-[22rem] shrink-0 flex-col border-l border-line bg-bg">
-      <div className="border-b border-line px-5 py-3">
-        <div className="text-xs text-faint">Stage {String(s.n).padStart(2, "0")}</div>
-        <div className="text-sm font-medium">{s.title}</div>
-        <div className="mt-0.5 text-xs text-muted">{s.summary}</div>
+    <aside className="sheet flex w-[21rem] shrink-0 flex-col max-xl:w-[18rem] max-md:w-full">
+      <div className="space-y-3 px-5 pb-3 pt-5" title={s.summary}>
+        <h2 className="flex items-baseline justify-between text-lg font-bold tracking-tight">
+          <span>{stageName(s)}</span>
+          {p.items.length > 0 && <span className="text-sm font-medium tabular-nums text-faint">{p.items.length}</span>}
+        </h2>
+        {showScale && <EvidenceScale labels={p.items.map((i) => i.label)} />}
       </div>
-      <div className="flex-1 overflow-auto p-4 scroll-thin" data-testid="stage-panel">{body}</div>
+      <div className="flex-1 overflow-auto px-3 pb-4 scroll-thin" data-testid="stage-panel">{body}</div>
     </aside>
   );
 }
