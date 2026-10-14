@@ -27,7 +27,7 @@ powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 
 If the `SIPPC System` folder already exists and is empty, run `git clone ... .` inside it instead.
 
-Or, without typing anything: double-click **Setup AllFix.cmd** in the folder, then **Start AllFix.cmd**. If the folder was filled from a zip, setup also links it to GitHub. To get a newer version later, close AllFix and double-click **Update AllFix.cmd**. If there is no local Postgres, setup asks for the Supabase connection string (Session pooler) and saves it in `.env` only.
+Or, without typing anything: double-click **Setup AllFix.cmd** in the folder, then **Start AllFix.cmd**. If the folder was filled from a zip, setup also links it to GitHub. Start AllFix.cmd keeps AllFix up to date by itself: it updates before starting, and a running AllFix checks GitHub every 10 minutes and restarts into a newer version when no answer is being written (fast-forward only; local changes are never overwritten). **Update AllFix.cmd** does the same by hand. If there is no local Postgres, setup asks for the Supabase connection string (Session pooler) and saves it in `.env` only.
 
 The strategist uses your own Claude subscription through Claude Code's sign-in, so there is no API
 key to set. If you have never signed in on this PC, install Claude Code and run `claude` once to log

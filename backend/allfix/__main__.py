@@ -23,12 +23,23 @@ async def _migrate_and_load(load: bool) -> None:
         await db.close_pool()
 
 
-def _run(coro) -> None:
+def _run(coro):
     # psycopg's async driver needs a selector event loop; Windows defaults to the proactor loop.
     if sys.platform == "win32":
-        asyncio.run(coro, loop_factory=asyncio.SelectorEventLoop)
-    else:
-        asyncio.run(coro)
+        return asyncio.run(coro, loop_factory=asyncio.SelectorEventLoop)
+    return asyncio.run(coro)
+
+
+async def _serve(server) -> bool:
+    """Serve until stopped; True when stopping to take an update from GitHub."""
+    from . import updater
+    watcher = asyncio.create_task(updater.watch(server)) if updater.enabled() else None
+    try:
+        await server.serve()
+    finally:
+        if watcher:
+            watcher.cancel()
+    return updater.state["restart"]
 
 
 def _check_accounts() -> int:
@@ -94,8 +105,11 @@ def main() -> None:
         import uvicorn
 
         s = get_settings()
+        from .updater import UPDATE_EXIT_CODE
         print(f"AllFix is running at http://{s.host}:{s.port}")
-        _run(uvicorn.Server(uvicorn.Config("allfix.main:app", host=s.host, port=s.port, log_level="info")).serve())
+        server = uvicorn.Server(uvicorn.Config("allfix.main:app", host=s.host, port=s.port, log_level="info"))
+        if _run(_serve(server)):
+            sys.exit(UPDATE_EXIT_CODE)
     else:
         print(__doc__)
         sys.exit(2)

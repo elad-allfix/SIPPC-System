@@ -1,10 +1,12 @@
 # Update AllFix from GitHub, then refresh the backend packages and rebuild the interface.
-# Close the AllFix window first. Run: powershell -ExecutionPolicy Bypass -File scripts\update.ps1
+# Start AllFix.cmd runs this before every start. By hand (AllFix closed): powershell -ExecutionPolicy Bypass -File scripts\update.ps1
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
-& git fetch origin main
-if ($LASTEXITCODE -ne 0) { Write-Host "Could not reach GitHub. Check the internet connection and try again." -ForegroundColor Red; exit 1 }
+& git fetch -q origin main
+if ($LASTEXITCODE -ne 0) { Write-Host "Could not reach GitHub; keeping the current version." -ForegroundColor Yellow; exit 1 }
+if ((& git rev-parse HEAD) -eq (& git rev-parse origin/main)) { Write-Host "AllFix is up to date."; exit 0 }
+Write-Host "Updating AllFix..." -ForegroundColor Yellow
 
 # Files copied in by hand that already match the new version would block the update: let git take them over.
 foreach ($f in (& git diff --name-only HEAD origin/main)) {
@@ -19,6 +21,9 @@ foreach ($f in (& git diff --name-only HEAD origin/main)) {
 & git merge --ff-only origin/main
 if ($LASTEXITCODE -ne 0) {
   Write-Host "Files in this folder were changed by hand, so the update stopped. Nothing was lost; ask Claude to sort it out." -ForegroundColor Red
+  # Tell the running server not to restart for this version again.
+  New-Item -ItemType Directory -Force -Path logs | Out-Null
+  Set-Content -Path logs\update-blocked.txt -Value (& git rev-parse origin/main)
   exit 1
 }
 & .\.venv\Scripts\python.exe -m pip install -e ".\backend[dev]" | Out-Null
@@ -26,4 +31,4 @@ Push-Location frontend
 npm install --no-fund --no-audit
 npm run build
 Pop-Location
-Write-Host "AllFix is up to date. Start it with 'Start AllFix.cmd' (database changes apply on start)." -ForegroundColor Green
+Write-Host "AllFix updated." -ForegroundColor Green
