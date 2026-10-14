@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Item, Project, Stage } from "../types";
 import Connectivity from "./Connectivity";
-import Ledger from "./Ledger";
+import Ledger, { Lessons } from "./Ledger";
 import Control from "./Control";
 import { stageName } from "./Rail";
 import { Button, ENTRY_PATH_TITLE, EvidenceScale, KIND_TITLE, LabelBadge, LabelDot, Markdown, hostOf } from "./ui";
@@ -147,6 +147,7 @@ export default function StagePanel(p: Props) {
     body = (
       <div className="space-y-5">
         <Ledger items={p.items} onAsk={p.onAsk} />
+        <Lessons projectId={pr.id} updatedAt={pr.updated_at} />
         {p.items.length === 0 ? <Empty>Nothing saved here yet. Decisions, forecasts and experiments land here.</Empty>
           : <Grouped items={p.items} {...actions} />}
       </div>

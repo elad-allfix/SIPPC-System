@@ -101,6 +101,11 @@ async def overview() -> list[dict]:
     return await store.overview()
 
 
+@router.get("/projects/{project_id}/lessons")
+async def project_lessons(project_id: str) -> list[dict]:
+    return await store.list_lessons(project_id)
+
+
 @router.get("/projects/{project_id}/needs")
 async def project_needs(project_id: str) -> dict:
     cards = await store.overview(project_id)

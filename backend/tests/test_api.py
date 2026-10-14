@@ -133,3 +133,18 @@ def test_economics_inputs_become_facts_and_stage_one_items_move():
         assert facts["contribution_margin (garage doors)"]["label"] == "estimate"
         items = client.get(f"/api/projects/{p['id']}/items").json()
         assert [(i["title"], i["stage"]) for i in items] == [("Calls not tracked", 2)]
+
+
+def test_lessons_endpoint_lists_project_and_shared():
+    client, _ = _client([
+        ([tool("t1", "record_lesson", {"what_was_wrong": "A", "correction": "B"}),
+          tool("t2", "record_lesson", {"what_was_wrong": "C", "correction": "D", "shared": True})], "tool_use"),
+        ([text("Noted.")], "end_turn"),
+    ])
+    with client:
+        p = client.post("/api/projects", json={"name": "L"}).json()
+        other = client.post("/api/projects", json={"name": "M"}).json()
+        conv = client.post(f"/api/projects/{p['id']}/conversations", json={}).json()
+        client.post(f"/api/conversations/{conv['id']}/chat", json={"message": "go"})
+        assert {l["correction"] for l in client.get(f"/api/projects/{p['id']}/lessons").json()} == {"B", "D"}
+        assert [l["correction"] for l in client.get(f"/api/projects/{other['id']}/lessons").json()] == ["D"]

@@ -25,6 +25,15 @@ export interface Project {
   stage_counts?: Record<string, Record<string, number>>;
 }
 
+export interface Lesson {
+  id: string;
+  project_id: string | null;
+  what_was_wrong: string;
+  correction: string;
+  applies_to: string;
+  created_at: string;
+}
+
 export interface ProjectCard extends Project {
   file_count: number;
   conversation_count: number;

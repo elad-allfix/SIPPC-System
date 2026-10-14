@@ -1,4 +1,6 @@
-import type { Item } from "../types";
+import { useEffect, useState } from "react";
+import { api } from "../api";
+import type { Item, Lesson } from "../types";
 
 const VERDICTS = ["hit", "partial", "miss", "unscorable"] as const;
 const today = () => new Date().toISOString().slice(0, 10);
@@ -30,6 +32,25 @@ export default function Ledger({ items, onAsk }: { items: Item[]; onAsk: (text: 
           <button className="text-accent hover:underline" onClick={() => onAsk("Score the forecasts that are due for review.")}>Ask the strategist to score them</button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** What was learned: corrections the strategist recorded, for this project and shared ones. */
+export function Lessons({ projectId, updatedAt }: { projectId: string; updatedAt: string }) {
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  useEffect(() => { api.lessons(projectId).then(setLessons).catch(() => setLessons([])); }, [projectId, updatedAt]);
+  if (lessons.length === 0) return null;
+  return (
+    <div className="space-y-2 rounded-xl border border-line bg-panel p-3 text-xs" data-testid="lessons">
+      <div className="text-sm font-medium">Lessons · {lessons.length}</div>
+      {lessons.map((l) => (
+        <div key={l.id} className="space-y-0.5 border-t border-line pt-2 first-of-type:border-0 first-of-type:pt-0">
+          <div className="text-faint line-through decoration-faint">{l.what_was_wrong}</div>
+          <div className="text-muted">{l.correction}</div>
+          <div className="text-faint">{l.project_id ? "This project" : "All projects"}{l.applies_to ? ` · ${l.applies_to}` : ""}</div>
+        </div>
+      ))}
     </div>
   );
 }
