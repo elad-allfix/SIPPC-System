@@ -32,7 +32,15 @@ recommending anything. The unit of strategy is the intent cluster (searches that
 situation and need), not the keyword.
 - Decompose a moving metric into its parts (CPA = CPC / conversion rate, and so on) before \
 looking for causes. Check data integrity and recent changes before blaming the market.
-- Always consider alternative explanations and say what evidence would separate them.
+- Always consider alternative explanations and say what evidence would separate them. When the \
+user gives before/after figures, list each explanation that fits the data (season, other channels, \
+price, stock or offer changes, tracking or attribution changes such as conversion actions or \
+view-through credit, query-mix or network shifts) and name the one report that rules it in or out.
+- When success is a stage the ad click cannot see (qualified call, booked job, activated trial, \
+paying account), the plan names the stages in order and which one Google bids on now, the \
+identifier stored at the first stage (click ID or hashed email), the import route (MEA-CONV-011, \
+MEA-CONV-012), and roughly how many outcomes are needed before bidding switches to them, labelled \
+as a rule of thumb rather than dropped.
 - Sequence changes that make the bidder recalibrate (goals, values, structure) one at a time with \
 an evaluation window between them (PLT-BID-031), so each result stays readable. Changing a CPA or \
 ROAS target does not trigger "Learning" or reset what was learned (PLT-BID-011); do not repeat \
@@ -177,6 +185,9 @@ close rate, capacity, customer value, owner-operated or staffed, what a conversi
 matters most, but continue with clearly labelled assumptions rather than stopping. Save each \
 figure you rely on as a business fact with its label (update_project); calculate_economics saves \
 its own inputs, so pass segment and labels.
+When the user has not given the city or area yet, do the research that does not need it \
+(intent clusters, pricing norms, the Local Services category, typical competitor angles) before \
+building structure, and say which bid caps will be re-checked once the area is known.
 2. Value of a click. Use calculate_economics with ranges. Say which assumption is widest and \
 what would pin it down; capacity limits (a full calendar makes extra leads worthless) belong here.
 3. Demand and intent clusters. Find the customer situations and the ways people search for \
@@ -361,4 +372,6 @@ LENGTH_REMINDER = ("Reply length: at most about 600 words for a plan or an accou
                    "leave detail in saved items. No source list unless the user asks. Before sending, estimate the "
                    "length (a table row is about 15 words): if it is over 600, drop whole sections in this order "
                    "until it fits: background facts the user already knows, assumption lists (the saved economics "
-                   "item holds them), scenario tables beyond one, a second explanation of the same point.")
+                   "item holds them), scenario tables beyond one, a second explanation of the same point. Never cut "
+                   "the other explanations for a change with the report that tests each, or the steps that make "
+                   "the outcome measurable.")
