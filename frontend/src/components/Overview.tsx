@@ -5,7 +5,7 @@ import { Orbits } from "./Ignition";
 type Finding = ProjectCard["findings"][number];
 type Missing = ProjectCard["missing"][number];
 
-/** Page looks, all "Stone": dark cards on a light page. Stone is the plain one; Ember, Atelier and Halo
+/** Page looks, all "Stone": dark cards on a light page. Stone is the plain one; Halo is the default; Ember, Atelier and Halo
  *  carry the entrance page's finish (mono eyebrow, big type with the amber dot, orbits, glow).
  *  Picked on the page, kept per browser. */
 export const LOOKS = ["stone", "ember", "atelier", "halo"] as const;
@@ -13,10 +13,22 @@ export type Look = (typeof LOOKS)[number];
 const LOOK_NAME: Record<Look, string> = { stone: "Stone", ember: "Ember", atelier: "Atelier", halo: "Halo" };
 const LOOK_KEY = "allfix.look";
 const savedLook = (): Look => {
-  try { const v = localStorage.getItem(LOOK_KEY); return (LOOKS as readonly string[]).includes(v ?? "") ? (v as Look) : "stone"; }
-  catch { return "stone"; }
+  try { const v = localStorage.getItem(LOOK_KEY); return (LOOKS as readonly string[]).includes(v ?? "") ? (v as Look) : "halo"; }
+  catch { return "halo"; }
 };
 const saveLook = (l: Look) => { try { localStorage.setItem(LOOK_KEY, l); } catch { /* storage unavailable */ } };
+
+/** Card layouts: List (two lists), Panels (two tinted panels), Rail (a lit line through findings, asks and plan),
+ *  Focus (the one top finding and the one next ask, large), Tiles (two big counts, then the top of each). */
+export const DESIGNS = ["list", "panels", "rail", "focus", "tiles"] as const;
+export type Design = (typeof DESIGNS)[number];
+const DESIGN_NAME: Record<Design, string> = { list: "List", panels: "Panels", rail: "Rail", focus: "Focus", tiles: "Tiles" };
+const DESIGN_KEY = "allfix.cards";
+const savedDesign = (): Design => {
+  try { const v = localStorage.getItem(DESIGN_KEY); return (DESIGNS as readonly string[]).includes(v ?? "") ? (v as Design) : "list"; }
+  catch { return "list"; }
+};
+const saveDesign = (d: Design) => { try { localStorage.setItem(DESIGN_KEY, d); } catch { /* storage unavailable */ } };
 
 const GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
@@ -65,6 +77,8 @@ export default function Overview({ cards, loading, error, onOpen, onNew, onRetry
 }) {
   const [look, setLook] = useState<Look>(savedLook);
   const pick = (l: Look) => { setLook(l); saveLook(l); };
+  const [design, setDesign] = useState<Design>(savedDesign);
+  const pickDesign = (d: Design) => { setDesign(d); saveDesign(d); };
   const sorted = [...cards].sort(order);
   const findings = cards.reduce((n, c) => n + (c.findings?.length ?? 0), 0);
   const missing = cards.reduce((n, c) => n + (c.missing?.length ?? 0), 0);
@@ -120,17 +134,9 @@ export default function Overview({ cards, loading, error, onOpen, onNew, onRetry
       data-testid="overview" data-look={look}>
       {st.orbits && <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-90"><Orbits /></div>}
       <div className="relative h-full overflow-auto px-6 pb-10 pt-6 scroll-thin max-sm:px-3">
-        <div className="mb-4 flex justify-end">
-          <div className="flex items-center gap-1 rounded-full bg-black/[.06] p-1 text-[11.5px] backdrop-blur"
-            role="radiogroup" aria-label="Page look" data-testid="look-picker">
-            <span className="px-2 text-faint">Look</span>
-            {LOOKS.map((l) => (
-              <button key={l} role="radio" aria-checked={look === l} onClick={() => pick(l)}
-                className={`rounded-full px-3 py-1 transition ${look === l ? "bg-accent font-semibold text-accent-fg" : "text-faint hover:text-fg"}`}>
-                {LOOK_NAME[l]}
-              </button>
-            ))}
-          </div>
+        <div className="mb-4 flex flex-wrap justify-end gap-2">
+          <Picker label="Cards" testid="card-picker" options={DESIGNS} names={DESIGN_NAME} value={design} onPick={pickDesign} />
+          <Picker label="Look" testid="look-picker" options={LOOKS} names={LOOK_NAME} value={look} onPick={pick} />
         </div>
 
         <div className={st.hero === "plain" ? "mb-6" : "mb-10 px-2 max-sm:px-0"}>{header}</div>
@@ -144,10 +150,27 @@ export default function Overview({ cards, loading, error, onOpen, onNew, onRetry
           <div className="text-sm text-faint" data-testid="empty-dashboard">A project holds one business: its research, plan, files and decisions. Start one with New project.</div>
         ) : (
           <div className={`grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] max-sm:grid-cols-1 ${st.hero === "plain" ? "gap-4" : "gap-5"}`}>
-            {sorted.map((c, i) => <Card key={c.id} c={c} n={i + 1} st={st} onOpen={() => onOpen(c.id)} onRename={(name) => onRename(c.id, name)} />)}
+            {sorted.map((c, i) => <Card key={c.id} c={c} n={i + 1} st={st} design={design} onOpen={() => onOpen(c.id)} onRename={(name) => onRename(c.id, name)} />)}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Picker<T extends string>({ label, testid, options, names, value, onPick }: {
+  label: string; testid: string; options: readonly T[]; names: Record<T, string>; value: T; onPick: (v: T) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 rounded-full bg-black/[.06] p-1 text-[11.5px] backdrop-blur"
+      role="radiogroup" aria-label={label} data-testid={testid}>
+      <span className="px-2 text-faint">{label}</span>
+      {options.map((o) => (
+        <button key={o} role="radio" aria-checked={value === o} onClick={() => onPick(o)}
+          className={`rounded-full px-3 py-1 transition ${value === o ? "bg-accent font-semibold text-accent-fg" : "text-faint hover:text-fg"}`}>
+          {names[o]}
+        </button>
+      ))}
     </div>
   );
 }
@@ -163,12 +186,10 @@ function Kpi({ n, label, tone, premium }: { n: number; label: string; tone?: str
   );
 }
 
-function Card({ c, n, st, onOpen, onRename }: {
-  c: ProjectCard; n: number; st: LookStyle; onOpen: () => void; onRename: (name: string) => Promise<void>;
+function Card({ c, n, st, design, onOpen, onRename }: {
+  c: ProjectCard; n: number; st: LookStyle; design: Design; onOpen: () => void; onRename: (name: string) => Promise<void>;
 }) {
   const place = [c.region, c.country].filter(Boolean).join(", ");
-  const findings = c.findings ?? [];
-  const missing = c.missing ?? [];
   const num = String(n).padStart(2, "0");
   return (
     <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) onOpen(); }}
@@ -185,24 +206,176 @@ function Card({ c, n, st, onOpen, onRename }: {
         </div>
       </div>
 
-      <Section title="Important findings" count={findings.length} testid="findings"
-        empty={c.item_total ? "Nothing important found yet." : "Nothing researched yet."}>
+      {design === "list" ? <ListBody c={c} /> : design === "panels" ? <PanelsBody c={c} />
+        : design === "rail" ? <RailBody c={c} /> : design === "focus" ? <FocusBody c={c} /> : <TilesBody c={c} />}
+    </div>
+  );
+}
+
+const emptyFound = (c: ProjectCard) => (c.item_total ? "Nothing important found yet." : "Nothing researched yet.");
+const EMPTY_MISSING = "Nothing missing right now.";
+const more = (n: number, shown: number) => (n > shown ? <li className="pl-4 text-xs text-faint">+{n - shown} more inside</li> : null);
+
+function PlanLine({ c, label = "Plan" }: { c: ProjectCard; label?: string }) {
+  if (!c.plan) return null;
+  return (
+    <div className="mt-auto border-t border-line pt-3 text-xs leading-relaxed text-faint">
+      <b className="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">{label}</b>
+      <span className="line-clamp-2">{c.plan}</span>
+    </div>
+  );
+}
+
+/** List: two plain lists, top three of each. */
+function ListBody({ c }: { c: ProjectCard }) {
+  const findings = c.findings ?? [], missing = c.missing ?? [];
+  return (
+    <>
+      <Section title="Important findings" count={findings.length} testid="findings" empty={emptyFound(c)}>
         {findings.slice(0, SHOWN).map((f, i) => (
           <Line key={i} tone={findingTone(f)} hollow={!f.firm} text={f.text} title={f.firm ? undefined : "Likely, not yet confirmed"} />
         ))}
       </Section>
-
-      <Section title="Missing from you" count={missing.length} testid="missing" empty="Nothing missing right now.">
+      <Section title="Missing from you" count={missing.length} testid="missing" empty={EMPTY_MISSING}>
         {missing.slice(0, SHOWN).map((m, i) => <Line key={i} tone={TONE.blue} text={missingText(m)} />)}
       </Section>
+      <PlanLine c={c} />
+    </>
+  );
+}
 
+/** Panels: findings in a warm glass panel, asks in a cool one, each with a glowing count. */
+function PanelsBody({ c }: { c: ProjectCard }) {
+  const findings = c.findings ?? [], missing = c.missing ?? [];
+  const panel = (title: string, count: number, tone: string, testid: string, empty: string, rows: React.ReactNode) => (
+    <div data-testid={testid} className="rounded-[16px] p-3.5"
+      style={{ background: `linear-gradient(180deg, ${tone}1f, ${tone}0a)`, boxShadow: `inset 0 0 0 1px ${tone}33` }}>
+      <div className="mb-2.5 flex items-center justify-between">
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.18em]" style={{ color: tone }}>{title}</span>
+        <span className="grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-[11px] font-bold tabular-nums text-[#111]"
+          style={{ background: tone, boxShadow: `0 0 14px ${tone}99`, opacity: count ? 1 : 0.35 }}>{count}</span>
+      </div>
+      {count === 0 ? <div className="text-[13px] text-faint">{empty}</div>
+        : <ul className="flex flex-col gap-2">{rows}{more(count, 2)}</ul>}
+    </div>
+  );
+  return (
+    <>
+      {panel("Found", findings.length, TONE.amber, "findings", emptyFound(c),
+        findings.slice(0, 2).map((f, i) => <Line key={i} tone={findingTone(f)} hollow={!f.firm} text={f.text} />))}
+      {panel("Needed from you", missing.length, TONE.blue, "missing", EMPTY_MISSING,
+        missing.slice(0, 2).map((m, i) => <Line key={i} tone={TONE.blue} text={missingText(m)} />))}
+      <PlanLine c={c} label="Next" />
+    </>
+  );
+}
+
+/** Rail: one lit line runs through what was found, what is needed, then the plan. */
+function RailBody({ c }: { c: ProjectCard }) {
+  const findings = c.findings ?? [], missing = c.missing ?? [];
+  const node = (tone: string, hollow = false) => (
+    <span className="absolute -left-[19px] top-[0.35em] h-[9px] w-[9px] rounded-full"
+      style={hollow ? { boxShadow: `inset 0 0 0 1.5px ${tone}`, background: "#16171b" } : { background: tone, boxShadow: `0 0 10px ${tone}` }} />
+  );
+  const group = (label: string, tone: string, count: number, testid: string, rows: React.ReactNode, empty: string) => (
+    <div data-testid={testid} className="relative">
+      <div className="mb-2 flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.18em]" style={{ color: tone }}>
+        {label}<span className="tabular-nums text-faint">{count}</span>
+      </div>
+      {count === 0 ? <div className="text-[13px] text-faint">{empty}</div> : <ul className="flex flex-col gap-2.5">{rows}{more(count, 2)}</ul>}
+    </div>
+  );
+  const row = (key: number, tone: string, text: string, hollow?: boolean) => (
+    <li key={key} className="relative text-[13px] leading-snug">{node(tone, hollow)}<span className="line-clamp-2">{text}</span></li>
+  );
+  return (
+    <div className="relative flex flex-1 flex-col gap-4 pl-[22px]">
+      <span aria-hidden className="absolute bottom-1 left-[7px] top-1 w-px"
+        style={{ background: `linear-gradient(180deg, ${TONE.amber}, ${TONE.blue} 70%, rgba(224,148,34,.5))`, boxShadow: `0 0 8px ${TONE.amber}66` }} />
+      {group("Found", TONE.amber, findings.length, "findings",
+        findings.slice(0, 2).map((f, i) => row(i, findingTone(f), f.text, !f.firm)), emptyFound(c))}
+      {group("From you", TONE.blue, missing.length, "missing",
+        missing.slice(0, 2).map((m, i) => row(i, TONE.blue, missingText(m))), EMPTY_MISSING)}
       {c.plan && (
-        <div className="mt-auto border-t border-line pt-3 text-xs leading-relaxed text-faint">
-          <b className="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">Plan</b>
+        <div className="relative mt-auto text-xs leading-relaxed text-faint">
+          {node(TONE.amber, true)}
+          <b className="mb-0.5 block font-mono text-[10px] font-normal uppercase tracking-[0.18em] text-accent">Plan</b>
           <span className="line-clamp-2">{c.plan}</span>
         </div>
       )}
     </div>
+  );
+}
+
+/** Focus: the single most important finding and the single next ask, large; the rest as counts. */
+function FocusBody({ c }: { c: ProjectCard }) {
+  const findings = c.findings ?? [], missing = c.missing ?? [];
+  const top = findings[0], ask = missing[0];
+  return (
+    <>
+      <div data-testid="findings">
+        <div className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-faint">Top finding</div>
+        {top ? (
+          <div className="relative pl-3.5 text-[15px] font-semibold leading-snug tracking-[-0.01em]">
+            <span aria-hidden className="absolute bottom-0.5 left-0 top-0.5 w-[3px] rounded-full"
+              style={{ background: findingTone(top), boxShadow: `0 0 12px ${findingTone(top)}` }} />
+            <span className="line-clamp-3">{top.text}</span>
+          </div>
+        ) : <div className="text-[13px] text-faint">{emptyFound(c)}</div>}
+      </div>
+      <div data-testid="missing">
+        <div className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-faint">Answer next</div>
+        {ask ? (
+          <div className="flex items-start gap-2.5 rounded-[14px] bg-[#4f8fe0]/[.12] px-3.5 py-3 text-[13.5px] leading-snug ring-1 ring-[#4f8fe0]/30">
+            <span aria-hidden className="mt-px text-[#7fb0ff]">→</span><span className="line-clamp-2">{missingText(ask)}</span>
+          </div>
+        ) : <div className="text-[13px] text-faint">{EMPTY_MISSING}</div>}
+      </div>
+      <div className="flex flex-wrap gap-1.5 text-[11.5px]">
+        <Chip tone={TONE.amber} text={`${findings.length} ${findings.length === 1 ? "finding" : "findings"}`} />
+        <Chip tone={TONE.blue} text={`${missing.length} from you`} />
+      </div>
+      <PlanLine c={c} />
+    </>
+  );
+}
+
+function Chip({ tone, text }: { tone: string; text: string }) {
+  return (
+    <span className="flex items-center gap-1.5 rounded-full bg-white/[.05] px-2.5 py-1 text-faint ring-1 ring-white/[.06]">
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: tone, boxShadow: `0 0 8px ${tone}` }} />{text}
+    </span>
+  );
+}
+
+/** Tiles: two big glowing counts, then the top item of each, tagged. */
+function TilesBody({ c }: { c: ProjectCard }) {
+  const findings = c.findings ?? [], missing = c.missing ?? [];
+  const tile = (n: number, label: string, tone: string) => (
+    <div className="flex-1 rounded-[16px] bg-white/[.04] px-3.5 py-3 ring-1 ring-white/[.06]">
+      <b className="block text-[32px] font-light leading-none tabular-nums tracking-[-0.03em]"
+        style={{ color: n ? tone : undefined, textShadow: n ? `0 0 18px ${tone}88` : undefined }}>{n}</b>
+      <span className="mt-1.5 block font-mono text-[10px] uppercase tracking-[0.18em] text-faint">{label}</span>
+    </div>
+  );
+  const tagged = (tag: string, tone: string, text: string, testid: string) => (
+    <div data-testid={testid} className="flex items-start gap-2.5 text-[13px] leading-snug">
+      <span className="mt-px shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.14em]"
+        style={{ color: tone, boxShadow: `inset 0 0 0 1px ${tone}55` }}>{tag}</span>
+      <span className="line-clamp-2">{text}</span>
+    </div>
+  );
+  return (
+    <>
+      <div className="flex gap-2.5">{tile(findings.length, "Findings", TONE.amber)}{tile(missing.length, "From you", TONE.blue)}</div>
+      <div className="flex flex-col gap-3">
+        {findings[0] ? tagged("Found", findingTone(findings[0]), findings[0].text, "findings")
+          : <div data-testid="findings" className="text-[13px] text-faint">{emptyFound(c)}</div>}
+        {missing[0] ? tagged("You", TONE.blue, missingText(missing[0]), "missing")
+          : <div data-testid="missing" className="text-[13px] text-faint">{EMPTY_MISSING}</div>}
+      </div>
+      <PlanLine c={c} />
+    </>
   );
 }
 
