@@ -9,7 +9,7 @@ Browser (React)                     Your PC or a cloud host
 ┌──────────────────────┐   HTTP/SSE  ┌──────────────────────────────────────────┐
 │ Seven-stage rail      │ ─────────▶ │ FastAPI app (one Python process)          │
 │ Strategist chat       │ ◀───────── │  ├─ Strategist loop ─▶ Claude API          │
-│ Stage panel           │            │  │    (Opus 5.5 default, Fable 5.1 deep)   │
+│ Stage panel           │            │  │    (Opus 5.5; Deep = max thinking)     │
 └──────────────────────┘            │  │    server tools: web_search, web_fetch  │
                                      │  │    our tools: knowledge, memory, math   │
                                      │  ├─ Data & Research (fetchers, page audit) │
@@ -91,7 +91,7 @@ allfix/
 | Mode | Model | Effort | Use |
 |---|---|---|---|
 | `standard` | `claude-opus-5-5` | high | Conversation, diagnosis, most research |
-| `deep` | `claude-fable-5-1` | high | Full niche research, strategy, hard judgement calls (user toggle) |
+| `deep` | `claude-opus-5-5` | max | Full niche research, strategy, hard judgement calls (user toggle). Was Fable 5.1 until 2026-10-15; Elad chose Opus 5.5 at maximum thinking after Fable was refused on his PC |
 
 Every request:
 - uses adaptive thinking with summarised display

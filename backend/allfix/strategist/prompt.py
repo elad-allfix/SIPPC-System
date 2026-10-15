@@ -345,4 +345,10 @@ async def project_brief(project_id: str) -> str:
         lines += [f"- {l['what_was_wrong']} -> {l['correction']}" for l in lessons]
     from datetime import date as _today
     return (f"Today is {_today.today().isoformat()}.\nCurrent project state (from the AllFix database):\n"
-            + "\n".join(lines))
+            + "\n".join(lines) + "\n\n" + LENGTH_REMINDER)
+
+
+# Sent with every turn, next to the user's message: the system prompt's length rule alone did not hold.
+LENGTH_REMINDER = ("Reply length: at most about 600 words for a plan or an account review, a few lines for a "
+                   "simple question. Keep the verdict, the numbers that matter, the actions and what you need; "
+                   "leave detail in saved items. No source list unless the user asks.")

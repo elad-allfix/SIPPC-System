@@ -29,9 +29,9 @@ class Settings(BaseSettings):
 
     # Strategist models. Each mode is one line so it can be changed without code.
     model_standard: str = "claude-opus-5-5"
-    model_deep: str = "claude-fable-5-1"
+    model_deep: str = "claude-opus-5-5"
     effort_standard: str = "high"
-    effort_deep: str = "high"
+    effort_deep: str = "max"
     max_tool_calls_per_turn: int = 60
 
     knowledge_dir: Path = REPO_ROOT / "knowledge"

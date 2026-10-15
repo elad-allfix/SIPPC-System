@@ -1,3 +1,4 @@
+from allfix.config import get_settings
 from allfix import store
 from allfix.strategist.loop import build_history, run_turn
 
@@ -108,7 +109,7 @@ async def test_deep_mode_uses_deep_model(database):
     p, c = await _project()
     client = FakeModelClient([([text("deep answer")], "end_turn")])
     await _run(client, p, c, "think hard", mode="deep")
-    assert client.requests[0]["model"] == "claude-fable-5-1"
+    assert client.requests[0]["model"] == get_settings().model_deep
     rows = await store.load_messages(c["id"])
     assert rows[-1]["mode"] == "deep"
 

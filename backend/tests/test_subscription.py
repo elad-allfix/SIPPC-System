@@ -31,7 +31,7 @@ async def test_options_isolate_tools_and_blank_the_api_key():
     assert opts.tools == ["WebSearch", "WebFetch"]
     assert "mcp__allfix__save_item" in opts.allowed_tools and "Bash" not in opts.allowed_tools
     assert opts.strict_mcp_config and opts.setting_sources == [] and opts.permission_mode == "dontAsk"
-    assert opts.env["ANTHROPIC_API_KEY"] == "" and opts.model == "claude-fable-5-1"
+    assert opts.env["ANTHROPIC_API_KEY"] == "" and opts.model == get_settings().model_deep
 
 
 async def test_budget_stops_research_early_but_lets_saving_through(monkeypatch):
