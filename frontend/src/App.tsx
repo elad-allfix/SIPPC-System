@@ -5,6 +5,7 @@ import KnowledgeView from "./components/KnowledgeView";
 import { Entrance, Setup } from "./components/Ignition";
 import Overview from "./components/Overview";
 import { Steps, TopBar } from "./components/Rail";
+import Split from "./components/Split";
 import StagePanel from "./components/StagePanel";
 import type { Conversation, Health, Item, Mode, Project, ProjectCard, Stage, Turn } from "./types";
 
@@ -250,15 +251,16 @@ export default function App() {
                 }}
                 onChanged={() => { loadOverview(); api.projects().then(setProjects).catch(() => {}); }} />
             ) : (
-            <>
+            <Split left={
               <Chat project={project} conversations={conversations} conversation={conversation} turns={turns} busy={busy}
                 draft={draft} setDraft={setDraft} onSend={send} onStop={() => abortRef.current?.abort()}
                 onNewConversation={newConversation} onSelectConversation={selectConversation} />
+            } right={
               <StagePanel project={project} stage={stages.find((s) => s.n === stage)} stages={stages} items={items}
                 onQuote={quote} onStatus={setStatus} onSelectStage={setStage}
                 onChanged={() => { if (project) refreshProject(project.id); }}
                 onAsk={(text) => { setView("chat"); setDraft(text); }} />
-            </>
+            } />
           )}
         </div>
       </div>
