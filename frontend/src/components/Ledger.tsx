@@ -9,7 +9,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 type F = Item & { data: { review_after?: string; outcome?: { verdict?: string } } };
 
 /** Record what happened to one forecast, in the user's own words, without asking the strategist. */
-function Score({ f, onScored }: { f: F; onScored: () => void }) {
+function Score({ f, onScored, onAsk }: { f: F; onScored: () => void; onAsk: (text: string) => void }) {
   const [open, setOpen] = useState(false);
   const [actual, setActual] = useState("");
   const [verdict, setVerdict] = useState<string>("hit");
@@ -17,7 +17,12 @@ function Score({ f, onScored }: { f: F; onScored: () => void }) {
   const [saving, setSaving] = useState(false);
   const save = async () => {
     setSaving(true); setError(null);
-    try { await api.scoreItem(f.id, { actual: actual.trim(), verdict }); setOpen(false); onScored(); }
+    try {
+      await api.scoreItem(f.id, { actual: actual.trim(), verdict }); setOpen(false); onScored();
+      // A miss or a partial is where the learning is: hand it to the strategist to draw the lesson.
+      if (verdict === "miss" || verdict === "partial")
+        onAsk(`I scored the forecast "${f.title}" as ${verdict}: ${actual.trim()}. What does this teach us, and what should change?`);
+    }
     catch (e) { setError(String((e as Error).message ?? e)); }
     finally { setSaving(false); }
   };
@@ -45,6 +50,8 @@ export default function Ledger({ items, onAsk, onScored }: { items: Item[]; onAs
   if (forecasts.length === 0) return null;
   const scored = forecasts.filter((f) => f.data?.outcome?.verdict);
   const due = forecasts.filter((f) => !f.data?.outcome && f.status === "open" && f.data?.review_after && String(f.data.review_after) <= today());
+  const upcoming = forecasts.filter((f) => !f.data?.outcome && f.status === "open" && f.data?.review_after && String(f.data.review_after) > today())
+    .sort((a, b) => String(a.data.review_after).localeCompare(String(b.data.review_after)));
   const counts = Object.fromEntries(VERDICTS.map((v) => [v, scored.filter((f) => f.data.outcome?.verdict === v).length]));
   const judged = counts.hit + counts.partial + counts.miss;
   return (
@@ -60,8 +67,16 @@ export default function Ledger({ items, onAsk, onScored }: { items: Item[]; onAs
       {due.length > 0 && (
         <div className="space-y-1 border-t border-line pt-2">
           <div className="font-medium text-amber-700 dark:text-amber-300">{due.length} due for review</div>
-          {due.map((f) => <Score key={f.id} f={f} onScored={onScored} />)}
+          {due.map((f) => <Score key={f.id} f={f} onScored={onScored} onAsk={onAsk} />)}
           <button className="text-accent hover:underline" onClick={() => onAsk("Score the forecasts that are due for review.")}>Or ask the strategist to score them from account data</button>
+        </div>
+      )}
+      {upcoming.length > 0 && (
+        <div className="space-y-1 border-t border-line pt-2" data-testid="upcoming-forecasts">
+          <div className="font-medium">Coming up</div>
+          {upcoming.slice(0, 3).map((f) => (
+            <div key={f.id} className="text-muted">· {f.title} <span className="text-faint">(check {f.data.review_after})</span></div>
+          ))}
         </div>
       )}
     </div>
