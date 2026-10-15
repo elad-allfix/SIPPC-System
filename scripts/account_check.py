@@ -6,6 +6,7 @@ conversation and saved items to the project, as the button does.
 
     python scripts/account_check.py "Garage doors"            # project name contains this text
     python scripts/account_check.py "Garage doors" --standard # Standard mode instead of Deep
+    python scripts/account_check.py "Garage doors" --growth   # the growth plan instead of the check
 
 It uses the strategist for real, so it counts against the Claude plan's usage.
 """
@@ -25,11 +26,18 @@ ACCOUNT_CHECK = ("Account check: read every attached report. First say what each
                  "date range, its own totals) and whether conversion tracking can be trusted. Then give one verdict line, "
                  "the 3 numbers that matter most, and the top 5 actions in order. Mark each number as observed from a file or estimated.")
 
+GROWTH_PLAN = ("Growth plan: build or update this project's growth plan from every attached report, aimed at more "
+               "qualified clicks at the lowest cost per click. Find keyword gaps with keyword_gaps, then cover all six "
+               "parts (keywords to add, searches to cut or bid down, bids and budgets, settings, ads, website) and "
+               "save each move with its plan_part. Say whether conversions can be trusted and, if not, which proxies "
+               "you judge by.")
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("project", help="text the project's name contains")
     ap.add_argument("--standard", action="store_true", help="Standard mode instead of Deep")
+    ap.add_argument("--growth", action="store_true", help="build the growth plan instead of the account check")
     ap.add_argument("--base", default="http://127.0.0.1:8000")
     a = ap.parse_args()
     with httpx.Client(base_url=a.base, timeout=httpx.Timeout(30, read=3600), trust_env=False) as c:
@@ -49,8 +57,8 @@ def main() -> int:
             return 1
         mode = "standard" if a.standard else "deep"
         conv = c.post(f"/api/projects/{p['id']}/conversations",
-                      json={"title": f"Account check ({mode}, {date.today().isoformat()})"}).json()
-        message = "\n".join([ACCOUNT_CHECK] + [f"[Attached: {f['name']} (file {f['id']})]" for f in files])
+                      json={"title": f"{'Growth plan' if a.growth else 'Account check'} ({mode}, {date.today().isoformat()})"}).json()
+        message = "\n".join([GROWTH_PLAN if a.growth else ACCOUNT_CHECK] + [f"[Attached: {f['name']} (file {f['id']})]" for f in files])
         print(f"{p['name']}: {len(files)} files, {mode} mode, conversation {conv['id']}. This can take 10+ minutes.", flush=True)
         started, text, tools, errors = time.time(), "", 0, []
         with c.stream("POST", f"/api/conversations/{conv['id']}/chat", json={"message": message, "mode": mode}) as r:

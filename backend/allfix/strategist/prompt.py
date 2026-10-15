@@ -285,25 +285,35 @@ differ). \
 Where a limit of the data changes the conclusion, say so in a line (for example competitors' \
 budgets and bids, or whether this volume is enough to prove cost per customer); skip it otherwise.
 
-# Growing qualified traffic without conversion data
-When the user wants more traffic, or conversions are missing or untrusted and will stay so for a \
-while, the goal is more qualified clicks at the lowest cost per click, not the cheapest clicks. \
-Qualified means the search shows the intent that pays (for a local service: urgent, in the area, a \
-buyer, not DIY, parts or jobs). Say which proxies stand in for conversions until tracking works \
-(clicks on the phone number or call asset, calls of a minimum length, engaged sessions, top-of-page \
-rate on high-intent keywords) and that cheap clicks on weak intent are the main way this goes wrong. \
-Then give, from the account's own files where they exist (read_file, keyword_gaps): \
-1. Keywords to add: gap searches with clicks and good intent, by cluster, with match type (exact or \
-phrase). 2. Keywords and searches to cut or bid down: weak intent, out of area, low CTR at real \
-spend; check they did not convert first. 3. Bids and budgets: raise bids where intent is high and \
-top-of-page or absolute-top rates are low; lower them where intent is weak or CPC is above what a \
-click can be worth (the owner's price per call or job times an assumed click-to-call rate, labelled); \
-move budget from weak to strong clusters; keep each change readable (PLT-BID-031). 4. Settings that \
-leak traffic: Display or Search partners in Search campaigns, broad match without negatives, \
-"presence or interest" location targeting, ad schedule outside answered hours. 5. Ads: headlines that \
-repeat the cluster's words and the urgent offer, call assets, which ads to pause by CTR. 6. Website: \
-the landing page per cluster, the phone number above the fold, speed, message match. Give every \
-figure's source (file or estimate), and save each main move as an opportunity item.
+# The growth plan (every project)
+Every project gets a growth plan, whatever its objective and whether or not it has conversion \
+data: an account review, a new-niche research and any "what should I do" plan end with it, and a \
+later turn updates it instead of starting another. Its aim is more qualified clicks at the lowest \
+cost per click. Qualified means the search shows the intent that pays (for a local service: urgent, \
+in the area, a buyer, not DIY, parts or jobs); cheap clicks on weak intent are the main way it goes \
+wrong. The objective changes the emphasis, not whether the plan exists: with a profit or lead \
+objective, judge bids against what a click is worth; with a traffic objective or no trusted \
+conversions, say which proxies stand in until tracking works (clicks on the phone number or call \
+asset, calls of a minimum length, engaged sessions, top-of-page rate on high-intent keywords). \
+Use the account's own files where they exist (read_file, keyword_gaps); for a new niche, use the \
+research (intent clusters, the results page, competitors) and say what will be checked once there \
+is data. The six parts, each saved as opportunity items in stage 5 with data.plan_part: \
+1. keywords_add: searches to add by cluster, with match type (exact or phrase). \
+2. keywords_cut: weak-intent, out-of-area or low-CTR searches to exclude or bid down; check they did \
+not convert first. \
+3. bids_budgets: where to raise bids (high intent, low top-of-page or absolute-top rate) and lower \
+them (weak intent, or CPC above what a click can be worth: the owner's price per call or job times an \
+assumed click-to-call rate, labelled); where to move budget; one readable change at a time \
+(PLT-BID-031). \
+4. settings: match types, location targeting (presence, not interest), ad schedule to answered \
+hours, Display and Search partners off in Search campaigns. \
+5. ads: headlines that repeat the cluster's words and the urgent offer, call assets, ads to pause by CTR. \
+6. website: the landing page per cluster, the phone number above the fold, speed, message match. \
+Keep each part to its few biggest moves; the project state shows which parts are still missing. \
+In the answer, give the plan's top moves in a few lines; the stage panel shows the whole plan. \
+These moves are saved in addition to the five main actions below, never as duplicates of them: \
+a main action that is also a plan move is one item with its plan_part. \
+Give every figure's source (file or estimate).
 
 # Reviewing a website
 When the project has a website (or the user asks for a site review): first know the intents \
@@ -371,6 +381,11 @@ async def project_brief(project_id: str) -> str:
                      + ", no import yet.")
     else:
         lines.append("Google Ads account: not connected.")
+    plan = await store.growth_plan(project_id)
+    have = [p["title"] for p in plan["parts"] if p["items"]]
+    lines.append("Growth plan: " + ("complete; update it when a turn changes it." if plan["complete"] else
+                 f"has {', '.join(have) or 'nothing yet'}; missing "
+                 f"{', '.join(p['title'] for p in plan['parts'] if not p['items'])}."))
     due = [it for it in items if store.is_due(it)]
     if due:
         lines.append("Forecasts and experiments due for review (score these first):")

@@ -27,6 +27,17 @@ KIND_STAGE = {
     "opportunity": 5, "risk": 5, "decision": 6, "forecast": 6, "experiment": 6, "question": 2,
 }
 
+# The growth plan every project gets: qualified traffic at the lowest cost, whatever the objective.
+# Saved as opportunity items (stage 5) whose data.plan_part names the part.
+PLAN_PARTS = {
+    "keywords_add": "Keywords to add",
+    "keywords_cut": "Searches to cut or bid down",
+    "bids_budgets": "Bids and budgets",
+    "settings": "Settings (match types, locations, schedule, networks)",
+    "ads": "Ads to add or change",
+    "website": "Website changes",
+}
+
 STAGES = [
     {"n": 1, "key": "connectivity", "title": "Secure connectivity",
      "summary": "Verified PIA and Dolphin route before any protected account access."},
@@ -471,3 +482,18 @@ async def delete_file(file_id: str, project_id: str) -> None:
     except ValueError:
         return
     await db.execute("delete from project_files where id = %s and project_id = %s", (file_id, project_id))
+
+
+# ---------- growth plan ----------
+
+async def growth_plan(project_id: str) -> dict:
+    """The project's growth plan, part by part, from its open opportunity items."""
+    rows = _clean_all(await db.fetch_all(
+        """select * from items where project_id = %s and kind = 'opportunity'
+           and data ? 'plan_part' and status not in ('dropped', 'superseded')
+           order by created_at""", (project_id,)))
+    parts = [{"key": k, "title": t, "items": [r for r in rows if r["data"].get("plan_part") == k]}
+             for k, t in PLAN_PARTS.items()]
+    missing = [p["key"] for p in parts if not p["items"]]
+    return {"parts": parts, "missing": missing, "complete": not missing,
+            "updated_at": max((r["updated_at"] for r in rows), default=None)}

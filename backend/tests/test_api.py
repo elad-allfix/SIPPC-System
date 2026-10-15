@@ -212,3 +212,24 @@ def test_recycle_bin_hides_restores_and_deletes_forever():
         client.post(f"/api/projects/{p['id']}/trash")
         assert client.delete(f"/api/projects/{p['id']}").status_code == 204
         assert client.get("/api/trash").json() == [] and client.get(f"/api/projects/{p['id']}").status_code == 404
+
+
+async def test_growth_plan_parts_and_plan_part_check(database):
+    from allfix import store
+    from allfix.strategist.prompt import project_brief
+    from allfix.strategist.tools import ToolContext, run_tool
+    p = await store.create_project({"name": "Plan check", "entry_path": "new_niche"})
+    ctx = ToolContext(p["id"], None)
+    base = {"kind": "opportunity", "title": "Add 'garage door spring repair calgary' as phrase", "body": "b",
+            "label": "observed", "confidence": "high"}
+    out, err = await run_tool(ctx, "save_item", {**base, "data": {"plan_part": "keywords_add"}})
+    assert not err, out
+    out, err = await run_tool(ctx, "save_item", {**base, "data": {"plan_part": "keywords"}})
+    assert err and "plan_part must be one of" in out
+    out, err = await run_tool(ctx, "save_item", {**base, "kind": "risk", "data": {"plan_part": "ads"}})
+    assert err and "only an opportunity" in out
+    plan = await store.growth_plan(p["id"])
+    assert [x["key"] for x in plan["parts"] if x["items"]] == ["keywords_add"]
+    assert not plan["complete"] and "website" in plan["missing"]
+    brief = await project_brief(p["id"])
+    assert "Growth plan: has Keywords to add; missing Searches to cut" in brief

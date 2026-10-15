@@ -129,7 +129,9 @@ CLIENT_TOOLS: list[dict] = [
                        "structure: intent_cluster {situation, example_queries, searcher_wants, value, competition}; "
                        "competitor {domain, angles, offers, proof, landing_pages}; decision {decision, reasoning, "
                        "alternatives}; forecast {prediction, metric, expected_range, review_after (YYYY-MM-DD), would_change_if}; "
-                       "experiment {hypothesis, design, success_metric, minimum_volume, review_after (YYYY-MM-DD)}.",
+                       "experiment {hypothesis, design, success_metric, minimum_volume, review_after (YYYY-MM-DD)}; "
+                       "a growth plan move is an opportunity with data.plan_part, one of keywords_add, keywords_cut, "
+                       "bids_budgets, settings, ads, website.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -385,8 +387,19 @@ def _check_single_question(args: dict) -> None:
         raise ToolError("a question item holds one question: save each question as its own item")
 
 
+def _check_plan_part(args: dict) -> None:
+    part = (args.get("data") or {}).get("plan_part")
+    if part is None:
+        return
+    if part not in store.PLAN_PARTS:
+        raise ToolError(f"data.plan_part must be one of {list(store.PLAN_PARTS)}")
+    if args.get("kind") != "opportunity":
+        raise ToolError("only an opportunity item carries data.plan_part")
+
+
 async def _save_item(ctx: ToolContext, args: dict) -> Any:
     _check_review_fields(args)
+    _check_plan_part(args)
     _check_single_question(args)
     item = await store.create_item(ctx.project_id, args, ctx.conversation_id)
     ctx.saved_items.append(item)
@@ -400,6 +413,7 @@ async def _update_item(ctx: ToolContext, args: dict) -> Any:
     existing = await store.get_item(args["id"])
     if existing is None or existing["project_id"] != ctx.project_id:
         raise ToolError("no item with that id in this project")
+    _check_plan_part({"kind": existing["kind"], "data": args.get("data")})
     item = await store.update_item(args["id"], args)
     ctx.saved_items.append(item)
     return {"updated": True, "id": item["id"], "status": item["status"]}
