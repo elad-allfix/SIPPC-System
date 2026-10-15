@@ -358,4 +358,7 @@ async def project_brief(project_id: str) -> str:
 # Sent with every turn, next to the user's message: the system prompt's length rule alone did not hold.
 LENGTH_REMINDER = ("Reply length: at most about 600 words for a plan or an account review, a few lines for a "
                    "simple question. Keep the verdict, the numbers that matter, the actions and what you need; "
-                   "leave detail in saved items. No source list unless the user asks.")
+                   "leave detail in saved items. No source list unless the user asks. Before sending, estimate the "
+                   "length (a table row is about 15 words): if it is over 600, drop whole sections in this order "
+                   "until it fits: background facts the user already knows, assumption lists (the saved economics "
+                   "item holds them), scenario tables beyond one, a second explanation of the same point.")
