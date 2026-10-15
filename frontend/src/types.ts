@@ -43,6 +43,10 @@ export interface ProjectCard extends Project {
   stages_with_items: number[];
   plan: string | null;
   needs: { kind: "do" | "check" | "answer" | "fix" | "risk"; text: string; item_id?: string; stage?: number }[];
+  /** What was found that the owner should know or change, most solid first. */
+  findings: { kind: "website_issue" | "risk" | "finding"; text: string; firm: boolean; item_id: string; stage: number }[];
+  /** What only the owner can give: answers, files, data. */
+  missing: { kind: "do" | "check" | "answer"; text: string; item_id?: string; stage?: number }[];
 }
 
 export interface Source { url?: string; title?: string; note?: string; kb?: string; checked?: string }

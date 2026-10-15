@@ -101,8 +101,8 @@ async def overview(project_id: str | None = None) -> list[dict]:
            group by project_id, stage, kind""", {"pid": project_id})
     # Only the kinds that can become a need, and only open ones: small even with many items.
     open_items = _clean_all(await db.fetch_all(
-        """select id, project_id, stage, kind, title, label, status, data from items
-           where status = 'open' and kind in ('forecast', 'experiment', 'question', 'website_issue', 'risk', 'decision')
+        """select id, project_id, stage, kind, title, label, confidence, status, data from items
+           where status = 'open' and kind in ('forecast', 'experiment', 'question', 'website_issue', 'risk', 'decision', 'finding')
              and (%(pid)s::uuid is null or project_id = %(pid)s::uuid)
            order by created_at desc""", {"pid": project_id}))
     by_kind: dict[str, dict[str, int]] = {}
@@ -138,8 +138,25 @@ async def overview(project_id: str | None = None) -> list[dict]:
         kinds = by_kind.get(p["id"], {})
         out.append({**p, "item_counts": kinds, "item_total": sum(kinds.values()),
                     "stages_with_items": sorted(stages.get(p["id"], set())),
-                    "plan": plan["title"] if plan else None, "needs": needs})
+                    "plan": plan["title"] if plan else None, "needs": needs,
+                    "findings": _findings(of("website_issue", "risk", "finding")),
+                    "missing": [n for n in needs if n["kind"] in ("answer", "do", "check")]})
     return out
+
+
+FINDING_RANK = {"website_issue": 0, "risk": 1, "finding": 2}
+CONFIDENCE_RANK = {"high": 0, "medium": 1, "low": 2}
+
+
+def _findings(items: list[dict]) -> list[dict]:
+    """What the strategist found that the owner should know or change: firm (verified or observed) first,
+    then by confidence, kind and stage (measurement and business findings before campaign ones).
+    Items arrive newest first, and the sort keeps that order within a tie."""
+    firm = lambda i: i["label"] in ("verified", "observed")  # noqa: E731
+    ranked = sorted(items, key=lambda i: (not firm(i), CONFIDENCE_RANK.get(i.get("confidence"), 1),
+                                          FINDING_RANK[i["kind"]], i["stage"]))
+    return [{"kind": i["kind"], "text": i["title"], "firm": firm(i), "item_id": i["id"], "stage": i["stage"]}
+            for i in ranked]
 
 
 async def create_project(data: dict) -> dict:

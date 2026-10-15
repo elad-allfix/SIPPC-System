@@ -94,6 +94,8 @@ def test_overview_lists_projects_with_needs():
         b = cards["Busy"]
         assert b["plan"] == "Fix tracking first" and b["item_total"] == 3 and b["conversation_count"] == 1
         assert [n["kind"] for n in b["needs"]] == ["check", "answer"]
+        assert [n["kind"] for n in b["missing"]] == ["check", "answer"] and b["findings"] == []
+        assert e["missing"] == e["needs"]
         assert client.get(f"/api/projects/{p['id']}/needs").json()["plan"] == "Fix tracking first"
         assert b["item_counts"]["question"] == 1 and b["stages_with_items"]
 
@@ -171,3 +173,26 @@ def test_user_scores_a_due_forecast_without_the_strategist():
         assert not any(n["kind"] == "check" for n in client.get(f"/api/projects/{p['id']}/needs").json()["needs"])
         assert client.post(f"/api/items/{items['finding']['id']}/outcome", json={"actual": "x", "verdict": "hit"}).status_code == 400
         assert client.post(f"/api/items/{items['forecast']['id']}/outcome", json={"actual": "x", "verdict": "maybe"}).status_code == 422
+
+
+def test_overview_findings_put_firm_and_confident_first():
+    items = [
+        ("finding", "Likely: brand moved into PMax", "hypothesis", "high"),
+        ("finding", "Tracking misses most calls", "observed", "high"),
+        ("website_issue", "Ad price not on the page", "observed", "medium"),
+        ("risk", "Health ads limits", "verified", "medium"),
+        ("opportunity", "Not a finding", "observed", "high"),
+    ]
+    client, _ = _client([
+        ([tool(f"t{i}", "save_item", {"kind": k, "title": t, "label": lab, "body": "-", "confidence": conf})
+          for i, (k, t, lab, conf) in enumerate(items)], "tool_use"),
+        ([text("Saved.")], "end_turn"),
+    ])
+    with client:
+        p = client.post("/api/projects", json={"name": "F", "entry_path": "new_niche"}).json()
+        conv = client.post(f"/api/projects/{p['id']}/conversations", json={}).json()
+        client.post(f"/api/conversations/{conv['id']}/chat", json={"message": "go"})
+        card = client.get(f"/api/projects/{p['id']}/needs").json()
+        assert [f["text"] for f in card["findings"]] == [
+            "Tracking misses most calls", "Ad price not on the page", "Health ads limits", "Likely: brand moved into PMax"]
+        assert [f["firm"] for f in card["findings"]] == [True, True, True, False]
