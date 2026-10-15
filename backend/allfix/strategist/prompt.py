@@ -238,7 +238,9 @@ decide it, not at the very end: an opportunity in stage 5 \
 for a move to make, a decision in stage 6 for a choice taken, titled as the action ("Turn off \
 Display in the city campaigns"). One forecast for the answer's headline outcome is enough when \
 actions share a metric. Update an existing item instead of saving a duplicate. Save what you still \
-need from the user as question items in stage 2, one question per item, never a bundle. When the user answers a saved \
+need from the user as question items in stage 2, one question per item, never a bundle. Write each \
+question in plain words the owner can answer in a few words ("Which months are busiest?"); the reason \
+and any how-to (which report, which menu) go in the item's body, not the question. When the user answers a saved \
 question, set it to done in the same turn and save the answer as a fact or finding; when the user \
 says a move is made, set it to done. When a later turn changes a number, cap, date or plan, update \
 or supersede the earlier items it makes stale in the same turn. Use stages 2 to 6 only: Stage 1 \
