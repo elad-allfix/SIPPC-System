@@ -7,45 +7,10 @@ import { Orbits } from "./Ignition";
 type Finding = ProjectCard["findings"][number];
 type Missing = ProjectCard["missing"][number];
 
-/** Page looks, all "Stone": dark cards on a light page. Stone is the plain one; Halo is the default; Ember, Atelier and Halo
- *  carry the entrance page's finish (mono eyebrow, big type with the amber dot, orbits, glow).
- *  Picked on the page, kept per browser. */
-export const LOOKS = ["stone", "ember", "atelier", "halo"] as const;
-export type Look = (typeof LOOKS)[number];
-const LOOK_NAME: Record<Look, string> = { stone: "Stone", ember: "Ember", atelier: "Atelier", halo: "Halo" };
-const LOOK_KEY = "allfix.look";
-const savedLook = (): Look => {
-  try { const v = localStorage.getItem(LOOK_KEY); return (LOOKS as readonly string[]).includes(v ?? "") ? (v as Look) : "halo"; }
-  catch { return "halo"; }
-};
-const saveLook = (l: Look) => { try { localStorage.setItem(LOOK_KEY, l); } catch { /* storage unavailable */ } };
-
-const GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
-
-type LookStyle = {
-  bg: string; orbits: boolean; hero: "plain" | "left" | "editorial" | "center";
-  shell: string; index: "none" | "eyebrow" | "big"; hairline: boolean;
-};
-const LOOK: Record<Look, LookStyle> = {
-  stone: {
-    bg: "#e9e7e1", orbits: false, hero: "plain", index: "none", hairline: false,
-    shell: "rounded-[22px] bg-[#17181c] shadow-[0_18px_40px_-22px_rgba(0,0,0,.55)] hover:shadow-[0_0_0_2px_var(--accent),0_18px_40px_-22px_rgba(0,0,0,.55)]",
-  },
-  ember: {
-    bg: "radial-gradient(900px 520px at 88% -8%, rgba(224,148,34,.20), transparent 62%), radial-gradient(700px 420px at 0% 110%, rgba(224,148,34,.08), transparent 60%), #ebe8e1",
-    orbits: true, hero: "left", index: "eyebrow", hairline: true,
-    shell: "rounded-[24px] bg-[linear-gradient(180deg,#1d1e23,#121317)] ring-1 ring-white/[.06] shadow-[0_30px_60px_-32px_rgba(40,24,0,.75)] hover:shadow-[0_0_0_6px_rgba(224,148,34,.14),0_0_44px_rgba(224,148,34,.38),0_30px_60px_-32px_rgba(40,24,0,.75)]",
-  },
-  atelier: {
-    bg: `${GRAIN}, linear-gradient(180deg,#f1ece3,#e7e1d6)`, orbits: false, hero: "editorial", index: "big", hairline: false,
-    shell: "rounded-[14px] bg-[#18191d] shadow-[0_1px_0_rgba(255,255,255,.04)_inset,0_24px_48px_-30px_rgba(30,20,5,.7)] hover:shadow-[0_0_0_1.5px_var(--accent),0_24px_48px_-30px_rgba(30,20,5,.7)]",
-  },
-  halo: {
-    bg: "radial-gradient(1100px 520px at 50% -12%, rgba(224,148,34,.22), transparent 64%), #efede8",
-    orbits: true, hero: "center", index: "eyebrow", hairline: false,
-    shell: "rounded-[26px] bg-[radial-gradient(420px_220px_at_100%_0%,rgba(224,148,34,.16),transparent_62%),linear-gradient(180deg,rgba(28,29,34,.96),rgba(17,18,22,.96))] ring-1 ring-white/[.08] backdrop-blur shadow-[0_34px_70px_-36px_rgba(30,18,0,.8)] hover:ring-accent/70 hover:shadow-[0_0_0_6px_rgba(224,148,34,.12),0_0_50px_rgba(224,148,34,.3),0_34px_70px_-36px_rgba(30,18,0,.8)]",
-  },
-};
+/** The Ember look: a light, warm page with the entrance page's finish (mono eyebrow, big headline with the
+ *  amber dot, orbits, glow) and dark cards with an amber hairline. */
+const PAGE_BG = "radial-gradient(900px 520px at 88% -8%, rgba(224,148,34,.20), transparent 62%), radial-gradient(700px 420px at 0% 110%, rgba(224,148,34,.08), transparent 60%), #ebe8e1";
+const CARD_SHELL = "rounded-[24px] bg-[linear-gradient(180deg,#1d1e23,#121317)] ring-1 ring-white/[.06] shadow-[0_30px_60px_-32px_rgba(40,24,0,.75)] hover:shadow-[0_0_0_6px_rgba(224,148,34,.14),0_0_44px_rgba(224,148,34,.38),0_30px_60px_-32px_rgba(40,24,0,.75)]";
 const today = () => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 const TONE = { red: "#e2553a", amber: "#e09422", blue: "#4f8fe0" };
@@ -67,128 +32,130 @@ export default function Overview({ cards, loading, error, onOpen, onNew, onRetry
   onChanged: () => void;
 }) {
   const deleteProject = async (c: ProjectCard) => { await api.trashProject(c.id); onChanged(); };
-  const [look, setLook] = useState<Look>(savedLook);
-  const pick = (l: Look) => { setLook(l); saveLook(l); };
   const sorted = [...cards].sort(order);
   const findings = cards.reduce((n, c) => n + (c.findings?.length ?? 0), 0);
   const missing = cards.reduce((n, c) => n + (c.missing?.length ?? 0), 0);
-  const st = LOOK[look];
   const summary = loading ? "Loading…" : error ? "Could not load the projects."
     : cards.length === 0 ? "No projects yet." : `${findings} findings to read, ${missing} things only you can give.`;
-  const kpis = (
-    <>
-      <Kpi n={cards.length} label="Projects" premium={st.hero !== "plain"} />
-      <Kpi n={findings} label="Findings" tone={TONE.amber} premium={st.hero !== "plain"} />
-      <Kpi n={missing} label="From you" tone={TONE.blue} premium={st.hero !== "plain"} />
-    </>
-  );
-  const eyebrow = <div className="font-mono text-[11px] uppercase tracking-[0.32em] text-faint">AllFix · Projects · {today()}</div>;
-  const newBtn = <button onClick={onNew} className="cta !px-5 !py-2.5 !text-sm" data-testid="overview-new">+ New project</button>;
-
-  const header = st.hero === "plain" ? (
-    <div className="flex flex-wrap items-center gap-x-9 gap-y-4">
-      <div className="min-w-0" data-testid="verdict">
-        <div className="text-[clamp(22px,3vw,32px)] font-bold leading-[1.15] tracking-[-0.035em]">Your projects</div>
-        <div className="mt-1.5 text-sm text-faint">{summary}</div>
-      </div>
-      <div className="ml-auto flex flex-wrap items-end gap-7 max-md:ml-0">{kpis}{newBtn}</div>
-    </div>
-  ) : st.hero === "center" ? (
-    <div className="flex flex-col items-center gap-4 pb-2 pt-4 text-center" data-testid="verdict">
-      {eyebrow}
-      <h1 className="text-[clamp(40px,6vw,76px)] font-extrabold leading-[0.95] tracking-[-0.045em]">Your projects<span className="text-accent">.</span></h1>
-      <div className="text-[15px] text-faint">{summary}</div>
-      <div className="mt-2 flex flex-wrap items-end justify-center gap-10">{kpis}</div>
-      <div className="mt-3">{newBtn}</div>
-    </div>
-  ) : (
-    <div className="flex flex-wrap items-end gap-x-10 gap-y-6" data-testid="verdict">
-      <div className="min-w-0 flex flex-col gap-3">
-        {eyebrow}
-        <h1 className={st.hero === "editorial"
-          ? "text-[clamp(40px,5.6vw,72px)] font-light leading-[0.95] tracking-[-0.05em]"
-          : "text-[clamp(40px,5.4vw,68px)] font-extrabold leading-[0.95] tracking-[-0.045em]"}>
-          {st.hero === "editorial" ? <>Your <b className="font-extrabold">projects</b></> : "Your projects"}<span className="text-accent">.</span>
-        </h1>
-        <div className="text-[15px] text-faint">{summary}</div>
-      </div>
-      <div className={`ml-auto flex flex-wrap items-end max-md:ml-0 ${st.hero === "editorial" ? "divide-x divide-black/10 [&>*]:px-8 [&>*:first-child]:pl-0 [&>*:last-child]:pr-0" : "gap-8"}`}>
-        {kpis}
-      </div>
-      <div className="max-md:w-full">{newBtn}</div>
-    </div>
-  );
 
   return (
-    <div className="sheet relative min-w-0 flex-1 overflow-hidden rounded-[22px]" style={{ background: st.bg }}
-      data-testid="overview" data-look={look}>
-      {st.orbits && <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-90"><Orbits /></div>}
-      <div className="relative h-full overflow-auto px-6 pb-10 pt-6 scroll-thin max-sm:px-3">
-        <div className="mb-4 flex flex-wrap justify-end gap-2">
-          <Picker label="Look" testid="look-picker" options={LOOKS} names={LOOK_NAME} value={look} onPick={pick} />
+    <div className="sheet relative min-w-0 flex-1 overflow-hidden rounded-[22px]" style={{ background: PAGE_BG }} data-testid="overview">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-90"><Orbits /></div>
+      <div className="relative flex h-full flex-col overflow-y-auto pb-8 pt-10 scroll-thin">
+        <div className="mb-10 flex flex-wrap items-end gap-x-10 gap-y-6 px-8 max-sm:px-4" data-testid="verdict">
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="font-mono text-[11px] uppercase tracking-[0.32em] text-faint">AllFix · Projects · {today()}</div>
+            <h1 className="text-[clamp(40px,5.4vw,68px)] font-extrabold leading-[0.95] tracking-[-0.045em]">
+              Your projects<span className="text-accent">.</span>
+            </h1>
+            <div className="text-[15px] text-faint">{summary}</div>
+          </div>
+          <div className="ml-auto flex flex-wrap items-end gap-8 max-md:ml-0">
+            <Kpi n={cards.length} label="Projects" />
+            <Kpi n={findings} label="Findings" tone={TONE.amber} />
+            <Kpi n={missing} label="From you" tone={TONE.blue} />
+          </div>
+          <div className="max-md:w-full">
+            <button onClick={onNew} className="cta !px-5 !py-2.5 !text-sm" data-testid="overview-new">+ New project</button>
+          </div>
         </div>
 
-        <div className={st.hero === "plain" ? "mb-6" : "mb-10 px-2 max-sm:px-0"}>{header}</div>
-
         {error ? (
-          <div className="flex flex-col items-start gap-2 text-sm text-faint" data-testid="overview-error">
+          <div className="flex flex-col items-start gap-2 px-8 text-sm text-faint" data-testid="overview-error">
             <span>{error}</span>
             <button onClick={onRetry} className="rounded-full border border-line px-4 py-2 text-fg hover:bg-panel">Try again</button>
           </div>
         ) : !loading && cards.length === 0 ? (
-          <div className="text-sm text-faint" data-testid="empty-dashboard">A project holds one business: its research, plan, files and decisions. Start one with New project.</div>
+          <div className="px-8 text-sm text-faint" data-testid="empty-dashboard">A project holds one business: its research, plan, files and decisions. Start one with New project.</div>
         ) : (
-          <div className={`grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] max-sm:grid-cols-1 ${st.hero === "plain" ? "gap-4" : "gap-5"}`}>
-            {sorted.map((c, i) => <Card key={c.id} c={c} n={i + 1} st={st} onOpen={() => onOpen(c.id)}
+          <Carousel count={sorted.length}>
+            {sorted.map((c, i) => <Card key={c.id} c={c} n={i + 1} onOpen={() => onOpen(c.id)}
               onEdit={(patch) => onEdit(c.id, patch)} onTrash={() => deleteProject(c)} />)}
-          </div>
+          </Carousel>
         )}
       </div>
     </div>
   );
 }
 
-function Picker<T extends string>({ label, testid, options, names, value, onPick }: {
-  label: string; testid: string; options: readonly T[]; names: Record<T, string>; value: T; onPick: (v: T) => void;
-}) {
+/** One row of cards that scrolls sideways: snaps to a card, arrows on the edges, the edges fade where more
+ *  cards wait, and a thin amber track shows where you are. Trackpad, touch, arrows and the keyboard all move it. */
+function Carousel({ count, children }: { count: number; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ left: false, right: false, start: 0, size: 1 });
+  const measure = () => {
+    const el = ref.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setPos({ left: el.scrollLeft > 4, right: el.scrollLeft < max - 4,
+      start: el.scrollWidth ? el.scrollLeft / el.scrollWidth : 0, size: el.scrollWidth ? el.clientWidth / el.scrollWidth : 1 });
+  };
+  useEffect(() => {
+    measure();
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [count]);
+  const step = (dir: 1 | -1) => {
+    const el = ref.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>("[data-testid=project-card]");
+    const by = card ? card.offsetWidth + 20 : el.clientWidth * 0.8;
+    el.scrollBy({ left: dir * Math.max(by, Math.floor(el.clientWidth / by) * by), behavior: "smooth" });
+  };
+  const fade = `linear-gradient(90deg, ${pos.left ? "transparent 0, #000 40px" : "#000 0"}, ${pos.right ? "#000 calc(100% - 40px), transparent 100%" : "#000 100%"})`;
+  const arrow = (dir: 1 | -1, show: boolean) => (
+    <button onClick={() => step(dir)} aria-label={dir < 0 ? "Previous projects" : "Next projects"} data-testid={dir < 0 ? "carousel-prev" : "carousel-next"}
+      className={`absolute top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-[#17181c] text-lg text-[#ecebe8] ring-1 ring-white/10 transition duration-300 hover:bg-accent hover:text-accent-fg hover:shadow-[0_0_0_6px_rgba(224,148,34,.16),0_0_32px_rgba(224,148,34,.5)] max-sm:hidden ${
+        dir < 0 ? "left-3" : "right-3"} ${show ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+      {dir < 0 ? "←" : "→"}
+    </button>
+  );
   return (
-    <div className="flex items-center gap-1 rounded-full bg-black/[.06] p-1 text-[11.5px] backdrop-blur"
-      role="radiogroup" aria-label={label} data-testid={testid}>
-      <span className="px-2 text-faint">{label}</span>
-      {options.map((o) => (
-        <button key={o} role="radio" aria-checked={value === o} onClick={() => onPick(o)}
-          className={`rounded-full px-3 py-1 transition ${value === o ? "bg-accent font-semibold text-accent-fg" : "text-faint hover:text-fg"}`}>
-          {names[o]}
-        </button>
-      ))}
+    <div className="relative" data-testid="carousel">
+      {arrow(-1, pos.left)}
+      <div ref={ref} onScroll={measure} tabIndex={0} aria-label="Projects"
+        onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); }}
+        className="flex snap-x snap-mandatory items-stretch gap-5 -my-4 overflow-x-auto scroll-smooth px-8 pb-16 pt-6 outline-none [scrollbar-width:none] max-sm:gap-3 max-sm:px-4 [&::-webkit-scrollbar]:hidden"
+        style={{ WebkitMaskImage: fade, maskImage: fade, scrollPaddingInline: "2rem" }}>
+        {children}
+      </div>
+      {arrow(1, pos.right)}
+      {pos.size < 0.999 && (
+        <div className="mx-auto -mt-6 h-1 w-40 overflow-hidden rounded-full bg-black/10" aria-hidden data-testid="carousel-track">
+          <div className="h-full rounded-full bg-accent shadow-[0_0_10px_rgba(224,148,34,.7)] transition-[margin] duration-150"
+            style={{ width: `${pos.size * 100}%`, marginLeft: `${pos.start * 100}%` }} />
+        </div>
+      )}
     </div>
   );
 }
 
-function Kpi({ n, label, tone, premium }: { n: number; label: string; tone?: string; premium?: boolean }) {
+function Kpi({ n, label, tone }: { n: number; label: string; tone?: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <b className={`font-light tabular-nums tracking-[-0.03em] ${premium ? "text-[44px] leading-none" : "text-[30px]"}`}>{n}</b>
-      <span className={`flex items-center gap-1.5 uppercase text-faint ${premium ? "font-mono text-[10.5px] tracking-[0.22em]" : "text-[11px] tracking-[0.08em]"}`}>
+      <b className="text-[44px] font-light leading-none tabular-nums tracking-[-0.03em]">{n}</b>
+      <span className="flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-[0.22em] text-faint">
         {tone && <span className="h-2 w-2 rounded-full" style={{ background: tone }} />}{label}
       </span>
     </div>
   );
 }
 
-function Card({ c, n, st, onOpen, onEdit, onTrash }: {
-  c: ProjectCard; n: number; st: LookStyle; onOpen: () => void;
+function Card({ c, n, onOpen, onEdit, onTrash }: {
+  c: ProjectCard; n: number; onOpen: () => void;
   onEdit: (patch: Partial<Project>) => Promise<void>; onTrash: () => Promise<void>;
 }) {
   const num = String(n).padStart(2, "0");
   return (
     <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) onOpen(); }}
       data-testid="project-card"
-      className={`frame group relative flex min-w-0 cursor-pointer flex-col gap-4 p-5 text-left text-fg transition duration-300 hover:-translate-y-0.5 ${st.shell}`}>
-      {st.hairline && <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(224,148,34,.9),transparent)]" />}
-      {st.index === "big" && <span aria-hidden className="pointer-events-none absolute right-5 top-4 text-[34px] font-extralight leading-none tracking-[-0.04em] text-white/[.13] tabular-nums">{num}</span>}
-      <div className={st.index === "big" ? "pr-12" : ""}>
-        {st.index === "eyebrow" && <div className="mb-2 font-mono text-[11px] tracking-[0.1em] text-accent">{num}</div>}
+      className={`frame group relative flex w-[340px] shrink-0 snap-start cursor-pointer flex-col gap-4 p-5 text-left text-fg transition duration-300 hover:-translate-y-0.5 max-sm:w-[84vw] ${CARD_SHELL}`}>
+      <span aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(224,148,34,.9),transparent)]" />
+      <div>
+        <div className="mb-2 font-mono text-[11px] tracking-[0.1em] text-accent">{num}</div>
         <Head c={c} onEdit={onEdit} onTrash={onTrash} />
       </div>
       <Panels c={c} />
