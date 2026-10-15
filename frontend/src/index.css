@@ -63,6 +63,8 @@
   --color-ink-fg: var(--ink-fg);
   --color-danger: var(--danger);
   --color-frame: var(--frame);
+  --color-frame-fg: var(--frame-fg);
+  --color-frame-muted: var(--frame-muted);
   --font-sans: "Sora", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 

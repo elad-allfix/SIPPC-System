@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from .. import db, store
+from ..intelligence import stage_view
 from ..knowledge import search as kb
 from ..strategist.models import spec_for
 
@@ -211,6 +212,28 @@ async def delete_file(project_id: str, file_id: str) -> None:
 @router.get("/projects/{project_id}/items")
 async def list_items(project_id: str, stage: int | None = None, kind: str | None = None) -> list[dict]:
     return await store.list_items(project_id, stage, kind)
+
+
+@router.get("/projects/{project_id}/stages/{stage}/view")
+async def stage_view_status(project_id: str, stage: int) -> dict:
+    if stage not in stage_view.VIEW_STAGES:
+        raise HTTPException(404, "This stage has no summary view")
+    try:
+        return await stage_view.status(project_id, stage)
+    except LookupError:
+        raise _404("project")
+
+
+@router.post("/projects/{project_id}/stages/{stage}/view")
+async def stage_view_refresh(project_id: str, stage: int, request: Request) -> dict:
+    """Write a new summary in the background when the stage changed since the last one."""
+    current = await stage_view_status(project_id, stage)
+    if not current["fresh"]:
+        writer = getattr(request.app.state, "stage_view_writer", None) or stage_view.default_writer()
+        stage_view.start(project_id, stage, writer)
+        current["generating"] = True
+        current["error"] = None
+    return current
 
 
 @router.patch("/items/{item_id}")

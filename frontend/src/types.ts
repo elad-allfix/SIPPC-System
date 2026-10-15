@@ -170,3 +170,21 @@ export interface FileRef {
   created_at: string;
   note?: string; // set when a large export was reduced on arrival
 }
+
+export type Tone = "good" | "bad" | "neutral";
+export interface ViewFlag { text: string; tone: Tone }
+export interface ViewKpi { icon: string; value: string; unit?: string; label: string; tone: Tone; evidence: Label; item_id?: string | null }
+interface BlockBase { title: string; icon: string; note?: string; item_ids?: string[] }
+export type ViewBlock = BlockBase & (
+  | { type: "ad"; url: string; headline: string; highlight?: string; description?: string; flags: ViewFlag[] }
+  | { type: "page"; url: string; heading: string; score: { value: number; label: string; compare?: string } | null; cta_after_words?: number | null; flags: ViewFlag[] }
+  | { type: "searches"; share: { label: string; pct: number; tone: Tone }[]; rows: { query: string; bold?: string; value?: string }[] }
+  | { type: "timeline"; steps: { date: string; symbol?: string; label: string; tone: Tone }[] }
+  | { type: "bars"; rows: { label: string; value: number; display?: string; tone: Tone }[] }
+  | { type: "profile"; rows: { icon: string; label: string; value: string; evidence: Label }[] }
+  | { type: "list"; rows: { text: string; tone: Tone; evidence: Label; item_id?: string | null }[] }
+  | { type: "places"; rows: { place: string; value?: string; note?: string }[] }
+  | { type: "competitors"; rows: { name: string; note?: string }[] }
+);
+export interface StageView { verdict: string; kpis: ViewKpi[]; blocks: ViewBlock[] }
+export interface StageViewState { view: StageView | null; fresh: boolean; empty: boolean; generating: boolean; error: string | null }

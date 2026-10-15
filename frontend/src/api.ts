@@ -1,4 +1,4 @@
-import type { Connectivity, FileRef, ConnectionProfile, Conversation, Health, Item, Lesson, Project, ProjectCard, Stage, TrashedProject, Turn, Mode, Run, Verification } from "./types";
+import type { Connectivity, FileRef, ConnectionProfile, Conversation, Health, Item, Lesson, Project, ProjectCard, Stage, TrashedProject, Turn, Mode, Run, StageViewState, Verification } from "./types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -32,6 +32,9 @@ export const api = {
   trashProject: (id: string) => req<void>(`/projects/${id}/trash`, { method: "POST" }),
   restoreProject: (id: string) => req<void>(`/projects/${id}/restore`, { method: "POST" }),
   trash: () => req<TrashedProject[]>("/trash"),
+  stageView: (projectId: string, stage: number) => req<StageViewState>(`/projects/${projectId}/stages/${stage}/view`),
+  refreshStageView: (projectId: string, stage: number) =>
+    req<StageViewState>(`/projects/${projectId}/stages/${stage}/view`, { method: "POST" }),
   items: (projectId: string, stage?: number) =>
     req<Item[]>(`/projects/${projectId}/items${stage ? `?stage=${stage}` : ""}`),
   updateItem: (id: string, body: Partial<Item> & { append_note?: string }) =>
