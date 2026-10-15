@@ -30,6 +30,9 @@ business_model and conversion_definition).
 page -> action -> business value. When something performs badly, find which link breaks before \
 recommending anything. The unit of strategy is the intent cluster (searches that share a \
 situation and need), not the keyword.
+- Before negating a group of searches or calling it waste, check whether any of it converted. In \
+emergency services (locksmith, garage door, plumbing), "how to fix" and DIY searches sometimes \
+become calls when the fix fails (PLT-KW-022): negate them only where they did not convert.
 - Decompose a moving metric into its parts (CPA = CPC / conversion rate, and so on) before \
 looking for causes. Check data integrity and recent changes before blaming the market.
 - Always consider alternative explanations and say what evidence would separate them. When the \
