@@ -14,6 +14,7 @@ export function useStageView(projectId: string, stage: number, version: string, 
     let alive = true;
     let timer: number | undefined;
     const key = `${projectId}:${stage}:${version}`;
+    const since = Date.now();
     setState((s) => (asked.current.startsWith(`${projectId}:${stage}:`) ? s : null));
     const poll = async () => {
       try {
@@ -23,6 +24,11 @@ export function useStageView(projectId: string, stage: number, version: string, 
           s = await api.refreshStageView(projectId, stage);
         }
         if (!alive) return;
+        // The server gives up after its own limit; this is the backstop if it never answers.
+        if (s.generating && Date.now() - since > 200_000) {
+          setState({ ...s, generating: false, error: "Writing this page took too long." });
+          return;
+        }
         setState(s);
         if (s.generating) timer = window.setTimeout(poll, 2500);
       } catch (e) {
@@ -273,18 +279,19 @@ export function StageViewBody({ view, items, onQuote }: { view: View; items: Ite
   );
 }
 
-export function StageViewLoading() {
+/** A slim line while a page is being written; the saved findings stay readable below it. */
+export function StageViewLoading({ elapsed = 0 }: { elapsed?: number }) {
+  const pct = Math.min(92, 8 + (elapsed / 60) * 80);
   return (
-    <div className="space-y-4" aria-busy="true">
-      <div className="flex items-center gap-2 text-[13px] text-faint">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />Writing this page from the latest findings…
+    <div className="rounded-2xl bg-frame px-4 py-3 text-frame-fg" aria-busy="true" data-testid="view-loading">
+      <div className="flex items-center justify-between gap-3 text-[13px]">
+        <span className="flex items-center gap-2"><span className="h-2 w-2 animate-pulse rounded-full bg-accent" />Drawing this page from your findings</span>
+        <span className="text-xs tabular-nums text-frame-muted">{elapsed > 0 ? `${elapsed}s` : "starting"}</span>
       </div>
-      <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(9.5rem, 1fr))" }}>
-        {[0, 1, 2, 3].map((i) => <div key={i} className="h-[104px] animate-pulse rounded-2xl bg-frame/90" />)}
+      <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-white/10">
+        <i className="block h-full rounded-full bg-accent transition-[width] duration-[2400ms] ease-linear" style={{ width: `${pct}%` }} />
       </div>
-      <div className="grid gap-3.5 @2xl:grid-cols-2">
-        {[0, 1].map((i) => <div key={i} className="h-44 animate-pulse rounded-[18px] bg-sunken" />)}
-      </div>
+      <div className="mt-2 text-[11.5px] text-frame-muted">Usually under a minute. Your findings are below meanwhile.</div>
     </div>
   );
 }

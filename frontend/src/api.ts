@@ -35,6 +35,7 @@ export const api = {
   stageView: (projectId: string, stage: number) => req<StageViewState>(`/projects/${projectId}/stages/${stage}/view`),
   refreshStageView: (projectId: string, stage: number) =>
     req<StageViewState>(`/projects/${projectId}/stages/${stage}/view`, { method: "POST" }),
+  refreshAllViews: (projectId: string) => req<{ started: number[] }>(`/projects/${projectId}/views/refresh`, { method: "POST" }),
   items: (projectId: string, stage?: number) =>
     req<Item[]>(`/projects/${projectId}/items${stage ? `?stage=${stage}` : ""}`),
   updateItem: (id: string, body: Partial<Item> & { append_note?: string }) =>

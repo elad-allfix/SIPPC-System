@@ -19,6 +19,7 @@ import logging
 import re
 import sys
 import threading
+import time
 from typing import Any, Awaitable, Callable
 
 from .. import db, store
@@ -263,7 +264,7 @@ async def write_with_subscription(prompt: str) -> tuple[str, str]:
         from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, ResultMessage, TextBlock, query
         s.agent_workdir.mkdir(parents=True, exist_ok=True)
         opts = ClaudeAgentOptions(system_prompt="You turn saved findings into a compact visual page. Answer with JSON only.",
-                                  model=s.model_standard, effort="medium", tools=[], allowed_tools=[],
+                                  model=s.model_standard, effort="low", tools=[], allowed_tools=[],
                                   setting_sources=[], skills=[], permission_mode="dontAsk", max_turns=1,
                                   cwd=str(s.agent_workdir), env=dict(AGENT_ENV), cli_path=s.claude_cli_path)
         text = []
@@ -284,7 +285,7 @@ async def write_with_subscription(prompt: str) -> tuple[str, str]:
 
     thread = threading.Thread(target=run, name="allfix-stage-view", daemon=True)
     thread.start()
-    await asyncio.to_thread(thread.join, 300)
+    await asyncio.to_thread(thread.join, TIMEOUT + 10)
     if out.get("error") and not out.get("text"):
         raise RuntimeError(out["error"])
     return out.get("text", ""), out.get("model") or s.model_standard
@@ -305,8 +306,11 @@ def default_writer() -> Writer:
 
 # ---------- storage and background work ----------
 
+TIMEOUT = 150  # seconds one page may take before it is given up and the saved items are shown
 _running: dict[tuple[str, int], asyncio.Task] = {}
+_started: dict[tuple[str, int], float] = {}
 _errors: dict[tuple[str, int], str] = {}
+_slots: dict[int, asyncio.Semaphore] = {}  # per event loop: at most two pages are written at once
 
 
 async def load(project_id: str, stage: int) -> dict | None:
@@ -324,7 +328,10 @@ async def generate(project_id: str, stage: int, writer: Writer) -> dict:
         view = {"verdict": "", "kpis": [], "blocks": []}
         model = None
     else:
-        text, model = await writer(build_prompt(stage, ctx))
+        try:
+            text, model = await asyncio.wait_for(writer(build_prompt(stage, ctx)), TIMEOUT)
+        except asyncio.TimeoutError:
+            raise RuntimeError(f"Writing this page took longer than {TIMEOUT // 60} minutes") from None
         view = clean(parse(text), {i["id"] for i in ctx["items"]})
     await db.execute(
         """insert into stage_views (project_id, stage, fingerprint, view, model) values (%s, %s, %s, %s, %s)
@@ -345,6 +352,7 @@ async def status(project_id: str, stage: int) -> dict:
             "fresh": empty or bool(row and row["fingerprint"] == fingerprint(stage, ctx)),
             "empty": empty,
             "generating": bool(task and not task.done()),
+            "elapsed": round(time.monotonic() - _started[key]) if task and not task.done() and key in _started else 0,
             "error": _errors.get(key)}
 
 
@@ -356,10 +364,24 @@ def start(project_id: str, stage: int, writer: Writer) -> None:
     _errors.pop(key, None)
 
     async def work() -> None:
+        slots = _slots.setdefault(id(asyncio.get_running_loop()), asyncio.Semaphore(2))
         try:
-            await generate(project_id, stage, writer)
+            async with slots:
+                _started[key] = time.monotonic()
+                await generate(project_id, stage, writer)
         except Exception as e:
             log.warning("stage view %s/%s failed: %s", project_id, stage, e)
             _errors[key] = str(e)[:300]
 
     _running[key] = asyncio.create_task(work())
+
+
+async def refresh_all(project_id: str, writer: Writer) -> list[int]:
+    """Start a new page for every stage whose findings changed, so pages are ready before they are opened."""
+    started = []
+    for n in sorted(VIEW_STAGES):
+        st = await status(project_id, n)
+        if not st["fresh"] and not st["generating"]:
+            start(project_id, n, writer)
+            started.append(n)
+    return started

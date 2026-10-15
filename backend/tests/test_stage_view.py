@@ -65,3 +65,29 @@ def test_view_is_written_once_and_rewritten_when_the_stage_changes():
         assert len(prompts) == 1
         client.patch(f"/api/items/{item['id']}", json={"status": "dropped"})
         assert client.get(url).json()["fresh"] is True  # a closed item leaves nothing to show
+
+
+def test_slow_page_gives_up_and_all_changed_stages_start(monkeypatch):
+    reset_schema()
+    monkeypatch.setattr(stage_view, "TIMEOUT", 0.2)
+
+    async def slow(prompt):
+        import asyncio
+        await asyncio.sleep(5)
+        return "{}", "fake"
+
+    app = create_app(model_client_factory=lambda: FakeModelClient([]))
+    app.state.stage_view_writer = slow
+    with TestClient(app) as client:
+        p = client.post("/api/projects", json={"name": "Garage doors"}).json()
+        from allfix import store
+        for stage in (4, 5):
+            client.portal.call(store.create_item, p["id"], {"stage": stage, "kind": "finding", "title": f"x{stage}",
+                                                            "body": "", "label": "observed"})
+        assert client.post(f"/api/projects/{p['id']}/views/refresh").json()["started"] == [4, 5]
+        for _ in range(60):
+            s = client.get(f"/api/projects/{p['id']}/stages/5/view").json()
+            if not s["generating"]:
+                break
+            time.sleep(0.05)
+        assert not s["generating"] and "longer than" in s["error"] and s["view"] is None

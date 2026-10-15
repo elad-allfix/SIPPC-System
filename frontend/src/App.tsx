@@ -94,6 +94,13 @@ export default function App() {
     api.items(project.id, stage).then(setItems).catch(() => setItems([]));
   }, [project?.id, project?.updated_at, stage]);
 
+  // Draw the stage pages ahead of time: whenever findings change, stages that changed get a new page.
+  useEffect(() => {
+    if (!project || busy) return;
+    const t = window.setTimeout(() => { api.refreshAllViews(project.id).catch(() => undefined); }, 1500);
+    return () => window.clearTimeout(t);
+  }, [project?.id, project?.updated_at, busy]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const createProject = async (body: Partial<Project>) => {
     const p = await api.createProject(body);
     setProjects((l) => [p, ...l]);

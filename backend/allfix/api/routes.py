@@ -236,6 +236,15 @@ async def stage_view_refresh(project_id: str, stage: int, request: Request) -> d
     return current
 
 
+@router.post("/projects/{project_id}/views/refresh")
+async def stage_views_refresh(project_id: str, request: Request) -> dict:
+    writer = getattr(request.app.state, "stage_view_writer", None) or stage_view.default_writer()
+    try:
+        return {"started": await stage_view.refresh_all(project_id, writer)}
+    except LookupError:
+        raise _404("project")
+
+
 @router.patch("/items/{item_id}")
 async def patch_item(item_id: str, body: ItemPatch) -> dict:
     try:

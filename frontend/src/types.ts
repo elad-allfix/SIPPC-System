@@ -187,4 +187,4 @@ export type ViewBlock = BlockBase & (
   | { type: "competitors"; rows: { name: string; note?: string }[] }
 );
 export interface StageView { verdict: string; kpis: ViewKpi[]; blocks: ViewBlock[] }
-export interface StageViewState { view: StageView | null; fresh: boolean; empty: boolean; generating: boolean; error: string | null }
+export interface StageViewState { view: StageView | null; fresh: boolean; empty: boolean; generating: boolean; error: string | null; elapsed?: number }

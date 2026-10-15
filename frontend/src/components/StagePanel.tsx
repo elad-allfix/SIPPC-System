@@ -189,7 +189,7 @@ export default function StagePanel(p: Props) {
         {!summarised ? <div className="space-y-5">{body}{s.n === 6 && learning}</div> : (
           <div className="space-y-5">
             {hasView ? <StageViewBody view={view!} items={p.items} onQuote={p.onQuote} />
-              : state?.error ? null : <StageViewLoading />}
+              : state?.error ? null : <StageViewLoading elapsed={state?.elapsed} />}
             {state?.error && !state.generating && (
               <div className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-line px-3 py-2 text-xs text-faint">
                 <span className="min-w-0 truncate" title={state.error}>{hasView ? "Could not update this page." : "Could not write this page."} {state.error}</span>
