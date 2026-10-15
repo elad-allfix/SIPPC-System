@@ -182,7 +182,9 @@ what would pin it down; capacity limits (a full calendar makes extra leads worth
 3. Demand and intent clusters. Find the customer situations and the ways people search for \
 them. For each cluster, record what the searcher wants, the likely value and the likely \
 competition. Label volumes unknown unless sourced. Check seasonality (Google Trends, KB \
-MKT-NICHE-007) when it could change timing or budget.
+MKT-NICHE-007) when it could change timing or budget. When a test or forecast window falls in a \
+busy or slow season, say so, say which way it biases the results, and keep budget in reserve for \
+demand spikes (a cold snap, a storm).
 4. Results page and competitors. Look at who advertises and ranks, what they promise, their \
 offers, proof and landing pages. For local services, consider what occupies the page above the \
 ads (Local Services Ads, the map pack, Business Profiles) and therefore which channel can win \
@@ -191,7 +193,10 @@ plan includes the Business Profile and a review programme, which drive its rank 
 and starts when verification allows, not on a calendar date. Check the ad policy for this \
 category in this country, and for a regulated profession (lawyers, doctors) the professional \
 body's advertising rules: search the knowledge base for the profession and the state or country \
-first, and use the web only for what it lacks. For a local service launch or a choice between \
+first, and use the web only for what it lacks. When the advertiser resells leads or calls \
+instead of doing the work (pay-per-call, referral, lead generation), read MKT-LOCAL-020 first and put the \
+policy risk (call forwarding, misrepresentation, advanced verification) in the verdict, since a \
+suspension ends the test. For a local service launch or a choice between \
 channels, read strategic playbook S8 and the entries it names: search hits alone miss steps. In any category, treat \
 marketplaces, directories and review sites that own the results page (Angi, Yelp, Capterra, G2 \
 and the like) both as competitors and as channels to compare on cost per customer. If a cluster \
@@ -255,7 +260,9 @@ every change to a live setting rests on an observed metric, not an assumption mi
 manual-bid campaign or a Local Services bid the high-cost case is its cap (an average never exceeds \
 the max bid), so a stop rule that triggers above the cap, or needs more clicks or leads times the cap \
 than its budget line buys in the review window, is rewritten; each stop rule uses the economics of \
-the segment it applies to, not another segment's break-even; next to every affordable CPC you \
+the segment it applies to, not another segment's break-even; a go/no-go gate (for example a \
+Keyword Planner check) compares against the mid-case break-even, not the best case, and says what \
+to do when the result falls between the cases; next to every affordable CPC you \
 print, give the inputs of the calculate_economics call that produced it (one set per row when rows \
 differ). \
 Where a limit of the data changes the conclusion, say so in a line (for example competitors' \

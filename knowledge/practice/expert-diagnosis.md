@@ -315,7 +315,7 @@ Evidence note: the search and fetch budget for this research session ran out bef
 - **Open questions:** No published, numbers-backed case was found in the time available.
 
 ### PRC-DIAG-030 · Calls and lead forms: call ads are being retired; choose between friction and volume deliberately
-- **Claim:** New call ads (call-only) can no longer be created as of February 2026, and existing call ads stop serving in February 2027. Google directs advertisers to call assets on RSAs **(changed 2026-02)**. For lead form assets, "More volume" (fewer steps) vs "More qualified" (more steps) is an explicit quality-volume dial.
+- **Claim:** New call ads (call-only) can no longer be created from January 2026 (Google Ads developer blog, October 2025; this entry said February until 2026-10-15), and existing call ads stop serving in February 2027. Google directs advertisers to call assets on RSAs **(changed 2026-01)**. For lead form assets, "More volume" (fewer steps) vs "More qualified" (more steps) is an explicit quality-volume dial.
 - **Evidence type:** documented
 - **Confidence:** high
 - **How it works:** Call assets keep a website click path alongside the phone number, so the call-vs-click mix is now partly decided by Google and the user. Lead forms reduce friction, which raises volume and, per Google's own description, may lower intent.

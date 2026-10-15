@@ -208,6 +208,17 @@ Related entries elsewhere: call assets and number verification (PLT-ADS-019), ca
 - **Signals in data:** Leads arriving before the badge shows in the LSA dashboard; lower lead volume than badged competitors at similar budgets.
 - **Sources:** [Getting started with Local Services Ads – Local Services Help](https://support.google.com/localservices/answer/6224841?hl=en) (checked 2026-10-13)
 
+### MKT-LOCAL-020 · Lead and call resellers (pay-per-call, referral): policy risk comes before economics
+- **Claim:** Three Google Ads policies bear on a business that sells calls or leads to local providers instead of doing the work. (1) "Call directory, forwarding, and recording services": "Promotions for call directory, forwarding, and recording services are not allowed"; the page's example is calling a number to be connected to another service. Allowed exceptions: online directories of phone numbers, call recording software, subscriptions for businesses, and businesses advertising their own official numbers. The page does not mention pay-per-call lead generation for local services, so whether it covers it is an interpretation we could not settle. (2) Misrepresentation: the ad and page must not hide who the advertiser is or present the providers' reviews, prices or licences as the advertiser's own. (3) Advanced verification (MKT-LOCAL-015): locksmiths in the US and Canada, garage door repair in the US only.
+- **Evidence type:** documented (policy pages); inference (how they apply to resellers)
+- **Confidence:** high (wording, as of the check date); low (how Google enforces (1) against local-service call resellers)
+- **How it works:** Policy decides whether the account can run at all, so it is checked before any economics. The safer setup states plainly on the page and in a call greeting that the advertiser connects callers with independent local companies, uses its own brand, and shows only its own claims. A long clean history running the same model is evidence that Google has tolerated it, not that it is allowed.
+- **When it matters / how experts use it:** Any plan for a pay-per-call, referral or lead-generation advertiser names the suspension risk in its verdict, links the policy pages, and keeps the launch reversible (one campaign, its own account if the main account carries other business). For locksmith work in the US or Canada, plan for the verification delay.
+- **Exceptions and failure modes:** Treating "nobody got suspended yet" as permission. Copying a provider's reviews or "licensed and insured" claims. Dynamic number swapping on the page can also trigger disapprovals of call assets (PLT-ADS-019).
+- **Signals in data:** Disapprovals or suspensions citing misrepresentation, "unacceptable business practices" or call forwarding; a verification request.
+- **Sources:** [Call directory, forwarding, and recording services – Google Advertising Policies Help](https://support.google.com/adspolicy/answer/13527435) (checked 2026-10-15); [Other restricted businesses: Local services – Google Advertising Policies Help](https://support.google.com/adspolicy/answer/13527633) (checked 2026-10-15); [Advanced verification – Google Advertising Policies Help](https://support.google.com/adspolicy/answer/7167922) (checked 2026-10-15)
+- **Open questions:** How Google enforces the call-forwarding policy against local-service pay-per-call advertisers; whether any official page addresses that model directly.
+
 ## Common mistakes and misleading metrics
 - Comparing LSA, marketplaces and Search on cost per lead instead of cost per booked job, or comparing shared leads with exclusive ones.
 - Setting GBP hours to "24 hours" without night cover, now that LSA charges missed calls of more than 20 seconds during business hours.
@@ -222,6 +233,7 @@ Related entries elsewhere: call assets and number verification (PLT-ADS-019), ca
 ## Unresolved questions
 - Whether migrated LSA (pay-per-lead PMax) campaigns compete with or suppress a business's own Search ads.
 - Whether the missed-call charge applies outside the US.
+- How Google enforces the call-forwarding policy (MKT-LOCAL-020) against local-service pay-per-call advertisers.
 - Full current LSA category lists per non-US country, and whether mobile pet grooming qualifies in Texas.
 - Default minimum call length for call conversions (not stated on the pages opened).
 - Sponsored listings inside the local 3-pack: current mechanics.

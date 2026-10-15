@@ -11,7 +11,7 @@ Checked: 2026-10-13. Research was done with web sources opened on that date. No 
 | Path | What it holds | Entries |
 |---|---|---|
 | `SCHEMA.md` | entry format and rules (evidence type, confidence, sources, "changed" markers) | |
-| `index.jsonl` | one line per entry: id, title, file, evidence type, confidence, changed flag, claim. Generated from the entry headings; Claude regenerates it after edits | 414 |
+| `index.jsonl` | one line per entry: id, title, file, evidence type, confidence, changed flag, claim. Generated from the entry headings; Claude regenerates it after edits | 415 |
 | `platform/auction-quality.md` | Ad Rank, thresholds, pricing, Quality Score, impression share, AI Overviews placement | 30 |
 | `platform/keywords-matching.md` | match types, precedence, AI Max migration, search terms visibility, negatives, Keyword Planner | 33 |
 | `platform/structure-targeting-budgets.md` | campaign structure, location, language, audiences, partners, budgets and pacing, impression share | 31 |
