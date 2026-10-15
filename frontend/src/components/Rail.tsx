@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Health, Project, Stage } from "../types";
+import { DeleteProject } from "./DeleteProject";
 
 /** Short names for the seven stages; the full title and summary stay in the tooltip. */
 const SHORT: Record<number, string> = {
@@ -23,6 +24,8 @@ interface TopProps {
   /** One level up: project or library to the projects page, the projects page to the entrance. */
   onBack: () => void;
   onAllProjects: () => void;
+  /** Delete the open project, then show all projects. */
+  onDeleteProject: (id: string) => Promise<void>;
 }
 
 /** Dark top bar: back, logo (all projects), project switcher, library, and one status dot for Claude. */
@@ -67,6 +70,10 @@ export function TopBar(p: TopProps) {
           </div>
         )}
       </div>
+      )}
+      {p.view === "chat" && p.project && (
+        <DeleteProject name={p.project.name.replace(/\s*\(test run\)\s*$/i, "")} align="left" className="h-9 w-9 !rounded-full border border-line"
+          onDelete={() => p.onDeleteProject(p.project!.id)} />
       )}
 
       <div className="ml-auto flex items-center gap-3">

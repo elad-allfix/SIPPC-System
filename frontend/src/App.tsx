@@ -230,6 +230,12 @@ export default function App() {
           onNewProject={() => setCreating(true)}
           onBack={view === "chat" && project ? showOverview : view === "knowledge" ? () => setView(libraryFrom) : home}
           onAllProjects={showOverview}
+          onDeleteProject={async (id) => {
+            await api.trashProject(id);
+            setProjects((l) => l.filter((x) => x.id !== id));
+            setProject(null); store.set("allfix.project", "");
+            showOverview();
+          }}
           onKnowledge={() => { if (view === "knowledge") setView(libraryFrom); else { setLibraryFrom(view); setView("knowledge"); } }} />
         <div className="flex min-h-0 flex-1 gap-3 max-md:flex-col">
           {view === "chat" && project && <Steps project={project} stages={stages} stage={stage} view={view}

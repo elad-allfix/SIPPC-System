@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
-import type { Project, ProjectCard, TrashedProject } from "../types";
+import type { Project, ProjectCard } from "../types";
+import { DeleteProject } from "./DeleteProject";
 import { Orbits } from "./Ignition";
 
 type Finding = ProjectCard["findings"][number];
@@ -65,22 +66,7 @@ export default function Overview({ cards, loading, error, onOpen, onNew, onRetry
   /** Projects were moved in or out of the bin, or deleted: reload the lists. */
   onChanged: () => void;
 }) {
-  const [trash, setTrash] = useState<TrashedProject[]>([]);
-  const [binOpen, setBinOpen] = useState(false);
-  const [undo, setUndo] = useState<{ id: string; name: string } | null>(null);
-  const [binErr, setBinErr] = useState<string | null>(null);
-  const loadTrash = () => api.trash().then(setTrash).catch(() => setTrash([]));
-  useEffect(() => { loadTrash(); }, []);
-  useEffect(() => { if (!undo) return; const t = setTimeout(() => setUndo(null), 8000); return () => clearTimeout(t); }, [undo]);
-  const act = async (fn: () => Promise<void>) => {
-    setBinErr(null);
-    try { await fn(); } catch (e) { setBinErr(String(e)); }
-    loadTrash(); onChanged();
-  };
-  const trashProject = (c: ProjectCard) => act(async () => { await api.trashProject(c.id); setUndo({ id: c.id, name: shortName(c) }); });
-  const restore = (id: string) => act(async () => { await api.restoreProject(id); setUndo(null); });
-  const deleteForever = (id: string) => act(() => api.deleteProject(id));
-  const toggleBin = () => { if (!binOpen) loadTrash(); setBinOpen(!binOpen); };
+  const deleteProject = async (c: ProjectCard) => { await api.trashProject(c.id); onChanged(); };
   const [look, setLook] = useState<Look>(savedLook);
   const pick = (l: Look) => { setLook(l); saveLook(l); };
   const sorted = [...cards].sort(order);
@@ -139,24 +125,11 @@ export default function Overview({ cards, loading, error, onOpen, onNew, onRetry
       {st.orbits && <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-90"><Orbits /></div>}
       <div className="relative h-full overflow-auto px-6 pb-10 pt-6 scroll-thin max-sm:px-3">
         <div className="mb-4 flex flex-wrap justify-end gap-2">
-          <button onClick={toggleBin} data-testid="bin-open"
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11.5px] backdrop-blur transition ${binOpen ? "bg-accent font-semibold text-accent-fg" : "bg-black/[.06] text-faint hover:text-fg"}`}>
-            <TrashIcon />Recycle bin{trash.length ? ` (${trash.length})` : ""}
-          </button>
           <Picker label="Look" testid="look-picker" options={LOOKS} names={LOOK_NAME} value={look} onPick={pick} />
         </div>
 
         <div className={st.hero === "plain" ? "mb-6" : "mb-10 px-2 max-sm:px-0"}>{header}</div>
 
-        {binOpen && <Bin items={trash} onRestore={restore} onDelete={deleteForever} />}
-        {binErr && <div className="mb-4 text-sm text-danger">{binErr}</div>}
-        {undo && (
-          <div className="frame fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-4 rounded-full bg-[#17181c] py-2.5 pl-5 pr-2.5 text-sm text-fg shadow-[0_20px_50px_-20px_rgba(0,0,0,.8)] ring-1 ring-white/10"
-            data-testid="undo-toast">
-            <span>{undo.name} moved to the recycle bin</span>
-            <button onClick={() => restore(undo.id)} className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-fg">Undo</button>
-          </div>
-        )}
         {error ? (
           <div className="flex flex-col items-start gap-2 text-sm text-faint" data-testid="overview-error">
             <span>{error}</span>
@@ -167,7 +140,7 @@ export default function Overview({ cards, loading, error, onOpen, onNew, onRetry
         ) : (
           <div className={`grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] max-sm:grid-cols-1 ${st.hero === "plain" ? "gap-4" : "gap-5"}`}>
             {sorted.map((c, i) => <Card key={c.id} c={c} n={i + 1} st={st} onOpen={() => onOpen(c.id)}
-              onEdit={(patch) => onEdit(c.id, patch)} onTrash={() => trashProject(c)} />)}
+              onEdit={(patch) => onEdit(c.id, patch)} onTrash={() => deleteProject(c)} />)}
           </div>
         )}
       </div>
@@ -205,7 +178,7 @@ function Kpi({ n, label, tone, premium }: { n: number; label: string; tone?: str
 
 function Card({ c, n, st, onOpen, onEdit, onTrash }: {
   c: ProjectCard; n: number; st: LookStyle; onOpen: () => void;
-  onEdit: (patch: Partial<Project>) => Promise<void>; onTrash: () => void;
+  onEdit: (patch: Partial<Project>) => Promise<void>; onTrash: () => Promise<void>;
 }) {
   const num = String(n).padStart(2, "0");
   return (
@@ -274,16 +247,13 @@ function Line({ tone, text, hollow, title }: { tone: string; text: string; hollo
 
 const ICON = { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2,
   strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-function TrashIcon() {
-  return <svg {...ICON}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></svg>;
-}
 function PinIcon() {
   return <svg {...ICON} width={15} height={15}><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></svg>;
 }
 
-/** Name and place, with a pencil to edit both in place and a bin to move the project to the recycle bin.
+/** Name and place, with a pencil to edit both in place and a bin to delete the project.
  *  Test runs keep their "(test run)" tag. */
-function Head({ c, onEdit, onTrash }: { c: ProjectCard; onEdit: (patch: Partial<Project>) => Promise<void>; onTrash: () => void }) {
+function Head({ c, onEdit, onTrash }: { c: ProjectCard; onEdit: (patch: Partial<Project>) => Promise<void>; onTrash: () => Promise<void> }) {
   const [editing, setEditing] = useState(false);
   const [f, setF] = useState({ name: "", region: "", country: "" });
   const [saving, setSaving] = useState(false);
@@ -334,51 +304,13 @@ function Head({ c, onEdit, onTrash }: { c: ProjectCard; onEdit: (patch: Partial<
           data-testid="rename" className={tool}>
           <svg {...ICON}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
         </button>
-        <button onClick={(e) => { stop(e); onTrash(); }} onKeyDown={stop} aria-label="Move to recycle bin" title="Move to recycle bin"
-          data-testid="trash" className={`${tool} hover:!text-[#f07a5f]`}><TrashIcon /></button>
+        <DeleteProject name={shortName(c)} onDelete={onTrash} className="opacity-60 group-hover:opacity-100" />
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[14px] text-muted">
         {place ? <span className="flex items-center gap-1.5"><span className="text-accent"><PinIcon /></span>{place}</span>
           : <button onClick={(e) => { stop(e); open(); }} className="flex items-center gap-1.5 text-faint hover:text-fg"><PinIcon />Add city and country</button>}
         {isTest(c) && <span className="rounded-full bg-sunken px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">Test</span>}
       </div>
-    </div>
-  );
-}
-
-/** Deleted projects wait here: restore one, or delete it forever (asked twice). */
-function Bin({ items, onRestore, onDelete }: {
-  items: TrashedProject[]; onRestore: (id: string) => void; onDelete: (id: string) => void;
-}) {
-  const [sure, setSure] = useState<string | null>(null);
-  return (
-    <div className="frame mb-8 rounded-[22px] bg-[linear-gradient(180deg,rgba(28,29,34,.97),rgba(17,18,22,.97))] p-5 text-fg ring-1 ring-white/[.08]"
-      data-testid="bin">
-      <div className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.18em] text-accent">Recycle bin</div>
-      <div className="mb-4 text-[13px] text-faint">Deleted projects keep everything here until you delete them forever.</div>
-      {items.length === 0 ? <div className="text-sm text-faint">The bin is empty.</div> : (
-        <ul className="flex flex-col divide-y divide-white/[.06]">
-          {items.map((t) => (
-            <li key={t.id} className="flex flex-wrap items-center gap-3 py-3" data-testid="bin-item">
-              <div className="min-w-0 flex-1">
-                <div className="text-[15px] font-semibold">{t.name.replace(/\s*\(test run\)\s*$/i, "")}</div>
-                <div className="text-xs text-faint">
-                  {[t.region, t.country].filter(Boolean).join(", ") || "No place set"} · deleted {new Date(t.deleted_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                </div>
-              </div>
-              <button onClick={() => onRestore(t.id)} data-testid="bin-restore"
-                className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-fg">Restore</button>
-              {sure === t.id ? (
-                <button onClick={() => { setSure(null); onDelete(t.id); }} data-testid="bin-delete-sure"
-                  className="rounded-full bg-[#e2553a] px-4 py-1.5 text-xs font-bold text-white">Yes, delete forever</button>
-              ) : (
-                <button onClick={() => setSure(t.id)} data-testid="bin-delete"
-                  className="rounded-full px-3 py-1.5 text-xs text-faint ring-1 ring-white/10 hover:text-[#f07a5f]">Delete forever</button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
