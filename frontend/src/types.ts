@@ -49,6 +49,10 @@ export interface ProjectCard extends Project {
   missing: { kind: "do" | "check" | "answer"; text: string; item_id?: string; stage?: number }[];
 }
 
+export interface TrashedProject {
+  id: string; name: string; country: string | null; region: string | null; deleted_at: string; item_count: number;
+}
+
 export interface Source { url?: string; title?: string; note?: string; kb?: string; checked?: string }
 
 export interface Item {

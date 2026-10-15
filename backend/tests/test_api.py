@@ -196,3 +196,19 @@ def test_overview_findings_put_firm_and_confident_first():
         assert [f["text"] for f in card["findings"]] == [
             "Tracking misses most calls", "Ad price not on the page", "Health ads limits", "Likely: brand moved into PMax"]
         assert [f["firm"] for f in card["findings"]] == [True, True, True, False]
+
+
+def test_recycle_bin_hides_restores_and_deletes_forever():
+    client, _ = _client([])
+    with client:
+        p = client.post("/api/projects", json={"name": "Old", "entry_path": "new_niche"}).json()
+        client.delete(f"/api/projects/{p['id']}")  # not in the bin: nothing happens
+        assert [c["name"] for c in client.get("/api/overview").json()] == ["Old"]
+        assert client.post(f"/api/projects/{p['id']}/trash").status_code == 204
+        assert client.get("/api/overview").json() == [] and client.get("/api/projects").json() == []
+        assert [t["name"] for t in client.get("/api/trash").json()] == ["Old"]
+        assert client.post(f"/api/projects/{p['id']}/restore").status_code == 204
+        assert [c["name"] for c in client.get("/api/overview").json()] == ["Old"]
+        client.post(f"/api/projects/{p['id']}/trash")
+        assert client.delete(f"/api/projects/{p['id']}").status_code == 204
+        assert client.get("/api/trash").json() == [] and client.get(f"/api/projects/{p['id']}").status_code == 404

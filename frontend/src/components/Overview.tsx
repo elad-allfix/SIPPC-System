@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { ProjectCard } from "../types";
+import { api } from "../api";
+import type { Project, ProjectCard, TrashedProject } from "../types";
 import { Orbits } from "./Ignition";
 
 type Finding = ProjectCard["findings"][number];
@@ -17,18 +18,6 @@ const savedLook = (): Look => {
   catch { return "halo"; }
 };
 const saveLook = (l: Look) => { try { localStorage.setItem(LOOK_KEY, l); } catch { /* storage unavailable */ } };
-
-/** Card layouts: List (two lists), Panels (two tinted panels), Rail (a lit line through findings, asks and plan),
- *  Focus (the one top finding and the one next ask, large), Tiles (two big counts, then the top of each). */
-export const DESIGNS = ["list", "panels", "rail", "focus", "tiles"] as const;
-export type Design = (typeof DESIGNS)[number];
-const DESIGN_NAME: Record<Design, string> = { list: "List", panels: "Panels", rail: "Rail", focus: "Focus", tiles: "Tiles" };
-const DESIGN_KEY = "allfix.cards";
-const savedDesign = (): Design => {
-  try { const v = localStorage.getItem(DESIGN_KEY); return (DESIGNS as readonly string[]).includes(v ?? "") ? (v as Design) : "list"; }
-  catch { return "list"; }
-};
-const saveDesign = (d: Design) => { try { localStorage.setItem(DESIGN_KEY, d); } catch { /* storage unavailable */ } };
 
 const GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
@@ -61,7 +50,6 @@ const today = () => new Date().toLocaleDateString("en-GB", { day: "numeric", mon
 const TONE = { red: "#e2553a", amber: "#e09422", blue: "#4f8fe0" };
 const findingTone = (f: Finding) => (f.kind === "finding" ? TONE.amber : TONE.red);
 const missingText = (m: Missing) => (m.kind === "check" ? `Result needed: ${m.text}` : m.text);
-const SHOWN = 3;
 
 const isTest = (c: ProjectCard) => /\(test run\)\s*$/i.test(c.name);
 const shortName = (c: ProjectCard) => c.name.replace(/\s*\(test run\)\s*$/i, "");
@@ -70,15 +58,31 @@ const order = (a: ProjectCard, b: ProjectCard) =>
   Number(isTest(a)) - Number(isTest(b)) || String(b.last_activity ?? "").localeCompare(String(a.last_activity ?? ""));
 
 /** All projects at a glance: for each, what was found and what is missing from the owner. */
-export default function Overview({ cards, loading, error, onOpen, onNew, onRetry, onRename }: {
+export default function Overview({ cards, loading, error, onOpen, onNew, onRetry, onEdit, onChanged }: {
   cards: ProjectCard[]; loading: boolean; error: string | null;
   onOpen: (id: string) => void; onNew: () => void; onRetry: () => void;
-  onRename: (id: string, name: string) => Promise<void>;
+  onEdit: (id: string, patch: Partial<Project>) => Promise<void>;
+  /** Projects were moved in or out of the bin, or deleted: reload the lists. */
+  onChanged: () => void;
 }) {
+  const [trash, setTrash] = useState<TrashedProject[]>([]);
+  const [binOpen, setBinOpen] = useState(false);
+  const [undo, setUndo] = useState<{ id: string; name: string } | null>(null);
+  const [binErr, setBinErr] = useState<string | null>(null);
+  const loadTrash = () => api.trash().then(setTrash).catch(() => setTrash([]));
+  useEffect(() => { loadTrash(); }, []);
+  useEffect(() => { if (!undo) return; const t = setTimeout(() => setUndo(null), 8000); return () => clearTimeout(t); }, [undo]);
+  const act = async (fn: () => Promise<void>) => {
+    setBinErr(null);
+    try { await fn(); } catch (e) { setBinErr(String(e)); }
+    loadTrash(); onChanged();
+  };
+  const trashProject = (c: ProjectCard) => act(async () => { await api.trashProject(c.id); setUndo({ id: c.id, name: shortName(c) }); });
+  const restore = (id: string) => act(async () => { await api.restoreProject(id); setUndo(null); });
+  const deleteForever = (id: string) => act(() => api.deleteProject(id));
+  const toggleBin = () => { if (!binOpen) loadTrash(); setBinOpen(!binOpen); };
   const [look, setLook] = useState<Look>(savedLook);
   const pick = (l: Look) => { setLook(l); saveLook(l); };
-  const [design, setDesign] = useState<Design>(savedDesign);
-  const pickDesign = (d: Design) => { setDesign(d); saveDesign(d); };
   const sorted = [...cards].sort(order);
   const findings = cards.reduce((n, c) => n + (c.findings?.length ?? 0), 0);
   const missing = cards.reduce((n, c) => n + (c.missing?.length ?? 0), 0);
@@ -135,12 +139,24 @@ export default function Overview({ cards, loading, error, onOpen, onNew, onRetry
       {st.orbits && <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-90"><Orbits /></div>}
       <div className="relative h-full overflow-auto px-6 pb-10 pt-6 scroll-thin max-sm:px-3">
         <div className="mb-4 flex flex-wrap justify-end gap-2">
-          <Picker label="Cards" testid="card-picker" options={DESIGNS} names={DESIGN_NAME} value={design} onPick={pickDesign} />
+          <button onClick={toggleBin} data-testid="bin-open"
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11.5px] backdrop-blur transition ${binOpen ? "bg-accent font-semibold text-accent-fg" : "bg-black/[.06] text-faint hover:text-fg"}`}>
+            <TrashIcon />Recycle bin{trash.length ? ` (${trash.length})` : ""}
+          </button>
           <Picker label="Look" testid="look-picker" options={LOOKS} names={LOOK_NAME} value={look} onPick={pick} />
         </div>
 
         <div className={st.hero === "plain" ? "mb-6" : "mb-10 px-2 max-sm:px-0"}>{header}</div>
 
+        {binOpen && <Bin items={trash} onRestore={restore} onDelete={deleteForever} />}
+        {binErr && <div className="mb-4 text-sm text-danger">{binErr}</div>}
+        {undo && (
+          <div className="frame fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-4 rounded-full bg-[#17181c] py-2.5 pl-5 pr-2.5 text-sm text-fg shadow-[0_20px_50px_-20px_rgba(0,0,0,.8)] ring-1 ring-white/10"
+            data-testid="undo-toast">
+            <span>{undo.name} moved to the recycle bin</span>
+            <button onClick={() => restore(undo.id)} className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-fg">Undo</button>
+          </div>
+        )}
         {error ? (
           <div className="flex flex-col items-start gap-2 text-sm text-faint" data-testid="overview-error">
             <span>{error}</span>
@@ -150,7 +166,8 @@ export default function Overview({ cards, loading, error, onOpen, onNew, onRetry
           <div className="text-sm text-faint" data-testid="empty-dashboard">A project holds one business: its research, plan, files and decisions. Start one with New project.</div>
         ) : (
           <div className={`grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] max-sm:grid-cols-1 ${st.hero === "plain" ? "gap-4" : "gap-5"}`}>
-            {sorted.map((c, i) => <Card key={c.id} c={c} n={i + 1} st={st} design={design} onOpen={() => onOpen(c.id)} onRename={(name) => onRename(c.id, name)} />)}
+            {sorted.map((c, i) => <Card key={c.id} c={c} n={i + 1} st={st} onOpen={() => onOpen(c.id)}
+              onEdit={(patch) => onEdit(c.id, patch)} onTrash={() => trashProject(c)} />)}
           </div>
         )}
       </div>
@@ -186,10 +203,10 @@ function Kpi({ n, label, tone, premium }: { n: number; label: string; tone?: str
   );
 }
 
-function Card({ c, n, st, design, onOpen, onRename }: {
-  c: ProjectCard; n: number; st: LookStyle; design: Design; onOpen: () => void; onRename: (name: string) => Promise<void>;
+function Card({ c, n, st, onOpen, onEdit, onTrash }: {
+  c: ProjectCard; n: number; st: LookStyle; onOpen: () => void;
+  onEdit: (patch: Partial<Project>) => Promise<void>; onTrash: () => void;
 }) {
-  const place = [c.region, c.country].filter(Boolean).join(", ");
   const num = String(n).padStart(2, "0");
   return (
     <div role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) onOpen(); }}
@@ -199,53 +216,18 @@ function Card({ c, n, st, design, onOpen, onRename }: {
       {st.index === "big" && <span aria-hidden className="pointer-events-none absolute right-5 top-4 text-[34px] font-extralight leading-none tracking-[-0.04em] text-white/[.13] tabular-nums">{num}</span>}
       <div className={st.index === "big" ? "pr-12" : ""}>
         {st.index === "eyebrow" && <div className="mb-2 font-mono text-[11px] tracking-[0.1em] text-accent">{num}</div>}
-        <Title c={c} onRename={onRename} />
-        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-faint">
-          {place && <span>{place}</span>}
-          {isTest(c) && <span className="rounded-full bg-sunken px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]">Test</span>}
-        </div>
+        <Head c={c} onEdit={onEdit} onTrash={onTrash} />
       </div>
-
-      {design === "list" ? <ListBody c={c} /> : design === "panels" ? <PanelsBody c={c} />
-        : design === "rail" ? <RailBody c={c} /> : design === "focus" ? <FocusBody c={c} /> : <TilesBody c={c} />}
+      <Panels c={c} />
     </div>
   );
 }
 
 const emptyFound = (c: ProjectCard) => (c.item_total ? "Nothing important found yet." : "Nothing researched yet.");
-const EMPTY_MISSING = "Nothing missing right now.";
-const more = (n: number, shown: number) => (n > shown ? <li className="pl-4 text-xs text-faint">+{n - shown} more inside</li> : null);
+const SHOWN = 2;
 
-function PlanLine({ c, label = "Plan" }: { c: ProjectCard; label?: string }) {
-  if (!c.plan) return null;
-  return (
-    <div className="mt-auto border-t border-line pt-3 text-xs leading-relaxed text-faint">
-      <b className="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">{label}</b>
-      <span className="line-clamp-2">{c.plan}</span>
-    </div>
-  );
-}
-
-/** List: two plain lists, top three of each. */
-function ListBody({ c }: { c: ProjectCard }) {
-  const findings = c.findings ?? [], missing = c.missing ?? [];
-  return (
-    <>
-      <Section title="Important findings" count={findings.length} testid="findings" empty={emptyFound(c)}>
-        {findings.slice(0, SHOWN).map((f, i) => (
-          <Line key={i} tone={findingTone(f)} hollow={!f.firm} text={f.text} title={f.firm ? undefined : "Likely, not yet confirmed"} />
-        ))}
-      </Section>
-      <Section title="Missing from you" count={missing.length} testid="missing" empty={EMPTY_MISSING}>
-        {missing.slice(0, SHOWN).map((m, i) => <Line key={i} tone={TONE.blue} text={missingText(m)} />)}
-      </Section>
-      <PlanLine c={c} />
-    </>
-  );
-}
-
-/** Panels: findings in a warm glass panel, asks in a cool one, each with a glowing count. */
-function PanelsBody({ c }: { c: ProjectCard }) {
+/** Findings in a warm glass panel, asks in a cool one, each with a glowing count; then the plan. */
+function Panels({ c }: { c: ProjectCard }) {
   const findings = c.findings ?? [], missing = c.missing ?? [];
   const panel = (title: string, count: number, tone: string, testid: string, empty: string, rows: React.ReactNode) => (
     <div data-testid={testid} className="rounded-[16px] p-3.5"
@@ -255,145 +237,28 @@ function PanelsBody({ c }: { c: ProjectCard }) {
         <span className="grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-[11px] font-bold tabular-nums text-[#111]"
           style={{ background: tone, boxShadow: `0 0 14px ${tone}99`, opacity: count ? 1 : 0.35 }}>{count}</span>
       </div>
-      {count === 0 ? <div className="text-[13px] text-faint">{empty}</div>
-        : <ul className="flex flex-col gap-2">{rows}{more(count, 2)}</ul>}
+      {count === 0 ? <div className="text-[13px] text-faint">{empty}</div> : (
+        <ul className="flex flex-col gap-2">
+          {rows}
+          {count > SHOWN && <li className="pl-4 text-xs text-faint">+{count - SHOWN} more inside</li>}
+        </ul>
+      )}
     </div>
   );
   return (
     <>
       {panel("Found", findings.length, TONE.amber, "findings", emptyFound(c),
-        findings.slice(0, 2).map((f, i) => <Line key={i} tone={findingTone(f)} hollow={!f.firm} text={f.text} />))}
-      {panel("Needed from you", missing.length, TONE.blue, "missing", EMPTY_MISSING,
-        missing.slice(0, 2).map((m, i) => <Line key={i} tone={TONE.blue} text={missingText(m)} />))}
-      <PlanLine c={c} label="Next" />
-    </>
-  );
-}
-
-/** Rail: one lit line runs through what was found, what is needed, then the plan. */
-function RailBody({ c }: { c: ProjectCard }) {
-  const findings = c.findings ?? [], missing = c.missing ?? [];
-  const node = (tone: string, hollow = false) => (
-    <span className="absolute -left-[19px] top-[0.35em] h-[9px] w-[9px] rounded-full"
-      style={hollow ? { boxShadow: `inset 0 0 0 1.5px ${tone}`, background: "#16171b" } : { background: tone, boxShadow: `0 0 10px ${tone}` }} />
-  );
-  const group = (label: string, tone: string, count: number, testid: string, rows: React.ReactNode, empty: string) => (
-    <div data-testid={testid} className="relative">
-      <div className="mb-2 flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.18em]" style={{ color: tone }}>
-        {label}<span className="tabular-nums text-faint">{count}</span>
-      </div>
-      {count === 0 ? <div className="text-[13px] text-faint">{empty}</div> : <ul className="flex flex-col gap-2.5">{rows}{more(count, 2)}</ul>}
-    </div>
-  );
-  const row = (key: number, tone: string, text: string, hollow?: boolean) => (
-    <li key={key} className="relative text-[13px] leading-snug">{node(tone, hollow)}<span className="line-clamp-2">{text}</span></li>
-  );
-  return (
-    <div className="relative flex flex-1 flex-col gap-4 pl-[22px]">
-      <span aria-hidden className="absolute bottom-1 left-[7px] top-1 w-px"
-        style={{ background: `linear-gradient(180deg, ${TONE.amber}, ${TONE.blue} 70%, rgba(224,148,34,.5))`, boxShadow: `0 0 8px ${TONE.amber}66` }} />
-      {group("Found", TONE.amber, findings.length, "findings",
-        findings.slice(0, 2).map((f, i) => row(i, findingTone(f), f.text, !f.firm)), emptyFound(c))}
-      {group("From you", TONE.blue, missing.length, "missing",
-        missing.slice(0, 2).map((m, i) => row(i, TONE.blue, missingText(m))), EMPTY_MISSING)}
+        findings.slice(0, SHOWN).map((f, i) => (
+          <Line key={i} tone={findingTone(f)} hollow={!f.firm} text={f.text} title={f.firm ? undefined : "Likely, not yet confirmed"} />)))}
+      {panel("Needed from you", missing.length, TONE.blue, "missing", "Nothing missing right now.",
+        missing.slice(0, SHOWN).map((m, i) => <Line key={i} tone={TONE.blue} text={missingText(m)} />))}
       {c.plan && (
-        <div className="relative mt-auto text-xs leading-relaxed text-faint">
-          {node(TONE.amber, true)}
-          <b className="mb-0.5 block font-mono text-[10px] font-normal uppercase tracking-[0.18em] text-accent">Plan</b>
+        <div className="mt-auto border-t border-line pt-3 text-xs leading-relaxed text-faint">
+          <b className="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">Next</b>
           <span className="line-clamp-2">{c.plan}</span>
         </div>
       )}
-    </div>
-  );
-}
-
-/** Focus: the single most important finding and the single next ask, large; the rest as counts. */
-function FocusBody({ c }: { c: ProjectCard }) {
-  const findings = c.findings ?? [], missing = c.missing ?? [];
-  const top = findings[0], ask = missing[0];
-  return (
-    <>
-      <div data-testid="findings">
-        <div className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-faint">Top finding</div>
-        {top ? (
-          <div className="relative pl-3.5 text-[15px] font-semibold leading-snug tracking-[-0.01em]">
-            <span aria-hidden className="absolute bottom-0.5 left-0 top-0.5 w-[3px] rounded-full"
-              style={{ background: findingTone(top), boxShadow: `0 0 12px ${findingTone(top)}` }} />
-            <span className="line-clamp-3">{top.text}</span>
-          </div>
-        ) : <div className="text-[13px] text-faint">{emptyFound(c)}</div>}
-      </div>
-      <div data-testid="missing">
-        <div className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.18em] text-faint">Answer next</div>
-        {ask ? (
-          <div className="flex items-start gap-2.5 rounded-[14px] bg-[#4f8fe0]/[.12] px-3.5 py-3 text-[13.5px] leading-snug ring-1 ring-[#4f8fe0]/30">
-            <span aria-hidden className="mt-px text-[#7fb0ff]">→</span><span className="line-clamp-2">{missingText(ask)}</span>
-          </div>
-        ) : <div className="text-[13px] text-faint">{EMPTY_MISSING}</div>}
-      </div>
-      <div className="flex flex-wrap gap-1.5 text-[11.5px]">
-        <Chip tone={TONE.amber} text={`${findings.length} ${findings.length === 1 ? "finding" : "findings"}`} />
-        <Chip tone={TONE.blue} text={`${missing.length} from you`} />
-      </div>
-      <PlanLine c={c} />
     </>
-  );
-}
-
-function Chip({ tone, text }: { tone: string; text: string }) {
-  return (
-    <span className="flex items-center gap-1.5 rounded-full bg-white/[.05] px-2.5 py-1 text-faint ring-1 ring-white/[.06]">
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: tone, boxShadow: `0 0 8px ${tone}` }} />{text}
-    </span>
-  );
-}
-
-/** Tiles: two big glowing counts, then the top item of each, tagged. */
-function TilesBody({ c }: { c: ProjectCard }) {
-  const findings = c.findings ?? [], missing = c.missing ?? [];
-  const tile = (n: number, label: string, tone: string) => (
-    <div className="flex-1 rounded-[16px] bg-white/[.04] px-3.5 py-3 ring-1 ring-white/[.06]">
-      <b className="block text-[32px] font-light leading-none tabular-nums tracking-[-0.03em]"
-        style={{ color: n ? tone : undefined, textShadow: n ? `0 0 18px ${tone}88` : undefined }}>{n}</b>
-      <span className="mt-1.5 block font-mono text-[10px] uppercase tracking-[0.18em] text-faint">{label}</span>
-    </div>
-  );
-  const tagged = (tag: string, tone: string, text: string, testid: string) => (
-    <div data-testid={testid} className="flex items-start gap-2.5 text-[13px] leading-snug">
-      <span className="mt-px shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.14em]"
-        style={{ color: tone, boxShadow: `inset 0 0 0 1px ${tone}55` }}>{tag}</span>
-      <span className="line-clamp-2">{text}</span>
-    </div>
-  );
-  return (
-    <>
-      <div className="flex gap-2.5">{tile(findings.length, "Findings", TONE.amber)}{tile(missing.length, "From you", TONE.blue)}</div>
-      <div className="flex flex-col gap-3">
-        {findings[0] ? tagged("Found", findingTone(findings[0]), findings[0].text, "findings")
-          : <div data-testid="findings" className="text-[13px] text-faint">{emptyFound(c)}</div>}
-        {missing[0] ? tagged("You", TONE.blue, missingText(missing[0]), "missing")
-          : <div data-testid="missing" className="text-[13px] text-faint">{EMPTY_MISSING}</div>}
-      </div>
-      <PlanLine c={c} />
-    </>
-  );
-}
-
-function Section({ title, count, empty, testid, children }: {
-  title: string; count: number; empty: string; testid: string; children: React.ReactNode;
-}) {
-  return (
-    <div data-testid={testid}>
-      <div className="mb-2 flex items-baseline justify-between text-[10.5px] font-semibold uppercase tracking-[0.08em] text-faint">
-        <span>{title}</span>{count > 0 && <span className="tabular-nums">{count}</span>}
-      </div>
-      {count === 0 ? <div className="text-[13px] text-faint">{empty}</div> : (
-        <ul className="flex flex-col gap-2">
-          {children}
-          {count > SHOWN && <li className="pl-4 text-xs text-faint">+{count - SHOWN} more inside</li>}
-        </ul>
-      )}
-    </div>
   );
 }
 
@@ -407,44 +272,113 @@ function Line({ tone, text, hollow, title }: { tone: string; text: string; hollo
   );
 }
 
-/** The project name, with a pencil to rename it in place. Test runs keep their "(test run)" tag. */
-function Title({ c, onRename }: { c: ProjectCard; onRename: (name: string) => Promise<void> }) {
+const ICON = { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2,
+  strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+function TrashIcon() {
+  return <svg {...ICON}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /></svg>;
+}
+function PinIcon() {
+  return <svg {...ICON} width={15} height={15}><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z" /><circle cx="12" cy="9.5" r="2.5" /></svg>;
+}
+
+/** Name and place, with a pencil to edit both in place and a bin to move the project to the recycle bin.
+ *  Test runs keep their "(test run)" tag. */
+function Head({ c, onEdit, onTrash }: { c: ProjectCard; onEdit: (patch: Partial<Project>) => Promise<void>; onTrash: () => void }) {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(shortName(c));
+  const [f, setF] = useState({ name: "", region: "", country: "" });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const input = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (editing) input.current?.select(); }, [editing]);
+  const first = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing) first.current?.select(); }, [editing]);
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
-  const cancel = () => { setEditing(false); setValue(shortName(c)); setErr(null); };
+  const place = [c.region, c.country].filter(Boolean).join(", ");
+  const open = () => { setF({ name: shortName(c), region: c.region ?? "", country: c.country ?? "" }); setErr(null); setEditing(true); };
   const save = async () => {
-    const name = value.trim();
-    if (!name || name === shortName(c)) { cancel(); return; }
+    const name = f.name.trim();
+    if (!name) { setErr("The name can't be empty."); return; }
     setSaving(true);
-    try { await onRename(isTest(c) ? `${name} (test run)` : name); setEditing(false); setErr(null); }
-    catch (e) { setErr(`Not saved: ${e}`); }
+    try {
+      await onEdit({ name: isTest(c) ? `${name} (test run)` : name, region: f.region.trim(), country: f.country.trim() });
+      setEditing(false);
+    } catch (e) { setErr(`Not saved: ${e}`); }
     finally { setSaving(false); }
   };
+  const tool = "shrink-0 rounded-md p-1 text-faint opacity-60 transition hover:bg-sunken hover:text-fg group-hover:opacity-100";
+  const field = "w-full rounded-lg border border-line bg-black/20 px-2.5 py-1.5 text-fg outline-none focus:border-accent";
 
   if (editing) return (
-    <div onClick={stop} onKeyDown={stop}>
-      <input ref={input} value={value} disabled={saving} maxLength={120} aria-label="Project name" data-testid="rename-input"
-        onChange={(e) => setValue(e.target.value)} onBlur={save}
-        onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") cancel(); }}
-        className="w-full rounded-lg border border-accent bg-transparent px-2 py-1 text-[17px] font-bold tracking-[-0.025em] text-fg outline-none" />
-      {err && <div className="mt-1 text-xs text-danger">{err}</div>}
+    <div onClick={stop} className="flex flex-col gap-2"
+      onKeyDown={(e) => { stop(e); if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}>
+      <input ref={first} value={f.name} disabled={saving} maxLength={120} aria-label="Project name" data-testid="rename-input"
+        onChange={(e) => setF({ ...f, name: e.target.value })}
+        className={`${field} text-[17px] font-bold tracking-[-0.025em]`} />
+      <div className="flex gap-2">
+        <input value={f.region} disabled={saving} placeholder="City" aria-label="City" data-testid="city-input"
+          onChange={(e) => setF({ ...f, region: e.target.value })} className={`${field} text-sm`} />
+        <input value={f.country} disabled={saving} placeholder="Country" aria-label="Country" data-testid="country-input"
+          onChange={(e) => setF({ ...f, country: e.target.value })} className={`${field} text-sm`} />
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={save} disabled={saving} data-testid="edit-save"
+          className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-fg disabled:opacity-60">{saving ? "Saving…" : "Save"}</button>
+        <button onClick={() => setEditing(false)} className="rounded-full px-3 py-1.5 text-xs text-faint hover:text-fg">Cancel</button>
+        {err && <span className="text-xs text-danger">{err}</span>}
+      </div>
     </div>
   );
   return (
-    <div className="flex items-start gap-2">
-      <div className="min-w-0 text-[17px] font-bold leading-snug tracking-[-0.025em]">{shortName(c)}</div>
-      <button onClick={(e) => { stop(e); setValue(shortName(c)); setEditing(true); }} onKeyDown={stop}
-        aria-label="Rename project" title="Rename" data-testid="rename"
-        className="mt-0.5 shrink-0 rounded-md p-1 text-faint opacity-60 transition hover:bg-sunken hover:text-fg group-hover:opacity-100">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-        </svg>
-      </button>
+    <div>
+      <div className="flex items-start gap-1">
+        <div className="min-w-0 flex-1 text-[19px] font-bold leading-snug tracking-[-0.025em]">{shortName(c)}</div>
+        <button onClick={(e) => { stop(e); open(); }} onKeyDown={stop} aria-label="Edit name and place" title="Edit name and place"
+          data-testid="rename" className={tool}>
+          <svg {...ICON}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+        </button>
+        <button onClick={(e) => { stop(e); onTrash(); }} onKeyDown={stop} aria-label="Move to recycle bin" title="Move to recycle bin"
+          data-testid="trash" className={`${tool} hover:!text-[#f07a5f]`}><TrashIcon /></button>
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[14px] text-muted">
+        {place ? <span className="flex items-center gap-1.5"><span className="text-accent"><PinIcon /></span>{place}</span>
+          : <button onClick={(e) => { stop(e); open(); }} className="flex items-center gap-1.5 text-faint hover:text-fg"><PinIcon />Add city and country</button>}
+        {isTest(c) && <span className="rounded-full bg-sunken px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-faint">Test</span>}
+      </div>
+    </div>
+  );
+}
+
+/** Deleted projects wait here: restore one, or delete it forever (asked twice). */
+function Bin({ items, onRestore, onDelete }: {
+  items: TrashedProject[]; onRestore: (id: string) => void; onDelete: (id: string) => void;
+}) {
+  const [sure, setSure] = useState<string | null>(null);
+  return (
+    <div className="frame mb-8 rounded-[22px] bg-[linear-gradient(180deg,rgba(28,29,34,.97),rgba(17,18,22,.97))] p-5 text-fg ring-1 ring-white/[.08]"
+      data-testid="bin">
+      <div className="mb-1 font-mono text-[10.5px] uppercase tracking-[0.18em] text-accent">Recycle bin</div>
+      <div className="mb-4 text-[13px] text-faint">Deleted projects keep everything here until you delete them forever.</div>
+      {items.length === 0 ? <div className="text-sm text-faint">The bin is empty.</div> : (
+        <ul className="flex flex-col divide-y divide-white/[.06]">
+          {items.map((t) => (
+            <li key={t.id} className="flex flex-wrap items-center gap-3 py-3" data-testid="bin-item">
+              <div className="min-w-0 flex-1">
+                <div className="text-[15px] font-semibold">{t.name.replace(/\s*\(test run\)\s*$/i, "")}</div>
+                <div className="text-xs text-faint">
+                  {[t.region, t.country].filter(Boolean).join(", ") || "No place set"} · deleted {new Date(t.deleted_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                </div>
+              </div>
+              <button onClick={() => onRestore(t.id)} data-testid="bin-restore"
+                className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-fg">Restore</button>
+              {sure === t.id ? (
+                <button onClick={() => { setSure(null); onDelete(t.id); }} data-testid="bin-delete-sure"
+                  className="rounded-full bg-[#e2553a] px-4 py-1.5 text-xs font-bold text-white">Yes, delete forever</button>
+              ) : (
+                <button onClick={() => setSure(t.id)} data-testid="bin-delete"
+                  className="rounded-full px-3 py-1.5 text-xs text-faint ring-1 ring-white/10 hover:text-[#f07a5f]">Delete forever</button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -67,7 +67,7 @@ def _clean_all(rows: list[dict]) -> list[dict]:
 async def list_projects() -> list[dict]:
     return _clean_all(await db.fetch_all(
         """select p.*, (select count(*) from items i where i.project_id = p.id) as item_count
-           from projects p order by p.updated_at desc"""))
+           from projects p where p.deleted_at is null order by p.updated_at desc"""))
 
 
 def is_due(item: dict, today: date | None = None) -> bool:
@@ -93,7 +93,7 @@ async def overview(project_id: str | None = None) -> list[dict]:
                            (select max(c.updated_at) from conversations c where c.project_id = p.id),
                            (select max(f.created_at) from project_files f where f.project_id = p.id),
                            (select max(i.updated_at) from items i where i.project_id = p.id)) as last_activity
-           from projects p where %(pid)s::uuid is null or p.id = %(pid)s::uuid
+           from projects p where (%(pid)s::uuid is null and p.deleted_at is null) or p.id = %(pid)s::uuid
            order by p.updated_at desc""", {"pid": project_id}))
     counts = await db.fetch_all(
         """select project_id, stage, kind, count(*) as n from items where status <> 'superseded'
@@ -198,7 +198,28 @@ async def get_project(project_id: str) -> dict | None:
 
 
 async def delete_project(project_id: str) -> None:
-    await db.execute("delete from projects where id = %s", (project_id,))
+    """Delete forever: only a project already in the recycle bin."""
+    await db.execute("delete from projects where id = %s and deleted_at is not null", (project_id,))
+
+
+async def trash_project(project_id: str) -> bool:
+    """Move to the recycle bin; everything stays until it is deleted forever."""
+    row = await db.fetch_one("update projects set deleted_at = now() where id = %s and deleted_at is null returning id",
+                             (project_id,))
+    return row is not None
+
+
+async def restore_project(project_id: str) -> bool:
+    row = await db.fetch_one("update projects set deleted_at = null where id = %s and deleted_at is not null returning id",
+                             (project_id,))
+    return row is not None
+
+
+async def list_trash() -> list[dict]:
+    return _clean_all(await db.fetch_all(
+        """select id, name, country, region, deleted_at,
+                  (select count(*) from items i where i.project_id = p.id) as item_count
+           from projects p where deleted_at is not null order by deleted_at desc"""))
 
 
 async def list_facts(project_id: str) -> list[dict]:

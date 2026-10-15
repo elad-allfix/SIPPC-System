@@ -1,4 +1,4 @@
-import type { Connectivity, FileRef, ConnectionProfile, Conversation, Health, Item, Lesson, Project, ProjectCard, Stage, Turn, Mode, Run, Verification } from "./types";
+import type { Connectivity, FileRef, ConnectionProfile, Conversation, Health, Item, Lesson, Project, ProjectCard, Stage, TrashedProject, Turn, Mode, Run, Verification } from "./types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -27,7 +27,11 @@ export const api = {
   createProject: (body: Partial<Project>) => req<Project>("/projects", { method: "POST", body: JSON.stringify(body) }),
   updateProject: (id: string, body: Partial<Project>) =>
     req<Project>(`/projects/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  /** Delete forever; only works on a project already in the recycle bin. */
   deleteProject: (id: string) => req<void>(`/projects/${id}`, { method: "DELETE" }),
+  trashProject: (id: string) => req<void>(`/projects/${id}/trash`, { method: "POST" }),
+  restoreProject: (id: string) => req<void>(`/projects/${id}/restore`, { method: "POST" }),
+  trash: () => req<TrashedProject[]>("/trash"),
   items: (projectId: string, stage?: number) =>
     req<Item[]>(`/projects/${projectId}/items${stage ? `?stage=${stage}` : ""}`),
   updateItem: (id: string, body: Partial<Item> & { append_note?: string }) =>

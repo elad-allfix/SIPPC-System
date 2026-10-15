@@ -145,7 +145,25 @@ async def patch_project(project_id: str, body: ProjectPatch) -> dict:
 
 @router.delete("/projects/{project_id}", status_code=204)
 async def delete_project(project_id: str) -> None:
+    """Delete forever. Only works on a project already in the recycle bin."""
     await store.delete_project(project_id)
+
+
+@router.post("/projects/{project_id}/trash", status_code=204)
+async def trash_project(project_id: str) -> None:
+    if not await store.trash_project(project_id):
+        raise _404("project")
+
+
+@router.post("/projects/{project_id}/restore", status_code=204)
+async def restore_project(project_id: str) -> None:
+    if not await store.restore_project(project_id):
+        raise _404("project in the recycle bin")
+
+
+@router.get("/trash")
+async def list_trash() -> list[dict]:
+    return await store.list_trash()
 
 
 @router.put("/projects/{project_id}/facts")
@@ -359,7 +377,7 @@ async def account_check_all(request: Request) -> dict:
     if request.client and request.client.host not in ("127.0.0.1", "::1", "localhost", "testclient"):
         raise HTTPException(status_code=403, detail="scheduled rounds run from this machine only")
     rows = await db.fetch_all("select cp.project_id, p.name from connection_profiles cp join projects p on p.id = cp.project_id "
-                              "where cp.ads_customer_id is not null")
+                              "where cp.ads_customer_id is not null and p.deleted_at is null")
     results = []
     for r in rows:
         pid = str(r["project_id"])

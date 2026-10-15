@@ -237,11 +237,12 @@ export default function App() {
           {view === "knowledge" ? <div className="sheet flex min-w-0 flex-1 flex-col"><KnowledgeView /></div>
             : view === "overview" || !project ? (
               <Overview cards={cards} loading={cardsLoading} error={cardsError} onOpen={openFromOverview} onNew={() => setCreating(true)} onRetry={loadOverview}
-                onRename={async (id, name) => {
-                  const p = await api.updateProject(id, { name });
-                  setCards((cs) => cs.map((c) => (c.id === id ? { ...c, name: p.name } : c)));
-                  setProjects((l) => l.map((x) => (x.id === id ? { ...x, name: p.name } : x)));
-                }} />
+                onEdit={async (id, patch) => {
+                  const p = await api.updateProject(id, patch);
+                  setCards((cs) => cs.map((c) => (c.id === id ? { ...c, name: p.name, region: p.region, country: p.country } : c)));
+                  setProjects((l) => l.map((x) => (x.id === id ? { ...x, ...p } : x)));
+                }}
+                onChanged={() => { loadOverview(); api.projects().then(setProjects).catch(() => {}); }} />
             ) : (
             <>
               <Chat project={project} conversations={conversations} conversation={conversation} turns={turns} busy={busy}
