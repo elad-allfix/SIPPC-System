@@ -228,3 +228,43 @@ def test_upload_api():
         assert [x["name"] for x in files] == ["jobs.csv"]
         assert client.delete(f"/api/projects/{p['id']}/files/{files[0]['id']}").status_code == 204
         assert client.get(f"/api/projects/{p['id']}/files").json() == []
+
+
+GAP_TERMS = b"""Search terms report
+All time
+Search term,Match type,Added/Excluded,Campaign,Ad group,Clicks,Impr.,CTR,Currency code,Avg. CPC,Cost,Conversions
+garage door repair calgary,Phrase match,None,Calgary,Repair,40,400,10.00%,CAD,4.00,160.00,2.00
+garage door spring repair calgary,Phrase match (close variant),None,Calgary,Springs,12,90,13.33%,CAD,5.00,60.00,1.00
+garage door spring repair calgary,Phrase match,None,Airdrie,Springs,3,20,15.00%,CAD,5.00,15.00,0.00
+emergency locksmith calgary,Exact match,Added,Calgary,Lock,30,100,30.00%,CAD,6.00,180.00,3.00
+garage door opener remote,Broad match,None,Calgary,Repair,8,200,4.00%,CAD,2.00,16.00,0.00
+garage door jobs,Broad match,Excluded,Calgary,Repair,5,50,10.00%,CAD,1.00,5.00,0.00
+garage door off track,Phrase match,None,Calgary,Repair,1,10,10.00%,CAD,4.00,4.00,0.00
+"""
+GAP_KEYWORDS = b"""Search keyword report
+All time
+Keyword status,Keyword,Match type,Campaign,Ad group,Clicks,Cost
+Enabled,\"\"\"garage door repair calgary\"\"\",Phrase match,Calgary,Repair,40,160.00
+Enabled,[garage door repair],Exact match,Calgary,Repair,10,40.00
+"""
+
+
+def test_keyword_gaps_finds_clicked_searches_that_are_not_keywords():
+    from allfix.intelligence import gaps
+    out = gaps.keyword_gaps(tables.parse(GAP_TERMS), tables.parse(GAP_KEYWORDS), min_clicks=3)
+    terms = [g["search term"] for g in out["gap_terms"]]
+    # the two spring-repair rows (two campaigns) are one gap; keywords, Added and Excluded terms are not gaps
+    assert terms == ["garage door spring repair calgary", "garage door opener remote"]
+    spring = out["gap_terms"][0]
+    assert spring["clicks"] == 15 and spring["campaigns"] == 2 and spring["cost"] == 75.0 and spring["avg_cpc"] == 5.0
+    assert out["clicks_from_terms_already_keywords"] == 70  # 40 keyword + 30 Added; Excluded rows are skipped
+    words = {t["words"] for t in out["themes_not_in_any_keyword"]}
+    assert "spring" in words and "opener remote" in words and "garage door" not in words
+    assert gaps.keyword_gaps(tables.parse(GAP_TERMS), contains="airdrie")["gap_terms_total"] == 1
+
+
+def test_where_filters_exact_text():
+    t = tables.parse(GAP_TERMS)
+    out = tables.query(t, where=["Added/Excluded = none", "Clicks >= 3"])
+    assert out["rows_matching"] == 4
+    assert tables.query(t, where=["Campaign != Calgary"])["rows_matching"] == 1

@@ -260,7 +260,8 @@ CLIENT_TOOLS: list[dict] = [
                 "file_id": {"type": "string"},
                 "contains": {"type": "string", "description": "Keep rows where any cell contains this text (case-insensitive)."},
                 "where": {"type": "array", "items": {"type": "string"},
-                          "description": "Number filters, all must hold, e.g. ['Cost > 50', 'Conversions = 0']."},
+                          "description": "Filters, all must hold: numbers ('Cost > 50', 'Conversions = 0') or exact "
+                          "text with = or != ('Added/Excluded = None', 'Campaign type != Display')."},
                 "group_by": {"type": "string", "description": "Column to group by; returns one row per value with "
                              "the row count and sums of additive columns, ordered by sort_by (default Cost)."},
                 "sort_by": {"type": "string", "description": "Column name to order by (numbers sort numerically)."},
@@ -270,6 +271,25 @@ CLIENT_TOOLS: list[dict] = [
                 "limit": {"type": "integer", "minimum": 1, "maximum": 200, "description": "Rows to return (default 50)."},
             },
             "required": ["file_id"],
+        },
+    },
+    {
+        "name": "keyword_gaps",
+        "description": "Find searches that already bring clicks but are not keywords yet, from an uploaded search "
+                       "terms report (and the keywords report, when there is one). Returns the gap search terms "
+                       "with clicks, CTR, cost, average CPC and conversions, and the words and word pairs that "
+                       "bring clicks but appear in no keyword (themes the account does not target). Use it for "
+                       "keyword expansion and for a traffic plan; judge each gap by intent before adding it.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "search_terms_file_id": {"type": "string"},
+                "keywords_file_id": {"type": "string", "description": "The keywords report, to compare against."},
+                "contains": {"type": "string", "description": "Only search terms whose text or campaign contains this, e.g. a city or a service."},
+                "min_clicks": {"type": "number", "description": "Minimum clicks for a gap term (default 3)."},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 200, "description": "Gap terms to return (default 40)."},
+            },
+            "required": ["search_terms_file_id"],
         },
     },
     {
@@ -495,6 +515,24 @@ async def _read_file(ctx: ToolContext, args: dict) -> Any:
     return uploads.read(f, args)
 
 
+async def _keyword_gaps(ctx: ToolContext, args: dict) -> Any:
+    from ..intelligence import gaps, uploads
+
+    async def table(file_id: str):
+        f = await store.get_file(str(file_id), ctx.project_id)
+        if f is None:
+            raise ToolError("no file with that id in this project; the project state lists the uploaded files")
+        parsed = uploads._load(f)
+        if isinstance(parsed, str):
+            raise ToolError(f"{f['name']} is not a table")
+        return parsed
+
+    terms = await table(args["search_terms_file_id"])
+    keywords = await table(args["keywords_file_id"]) if args.get("keywords_file_id") else None
+    return gaps.keyword_gaps(terms, keywords, float(args.get("min_clicks") or 3), int(args.get("limit") or 40),
+                             args.get("contains"))
+
+
 async def _record_lesson(ctx: ToolContext, args: dict) -> Any:
     lesson = await store.create_lesson(None if args.get("shared") else ctx.project_id, args)
     return {"recorded": True, "id": lesson["id"]}
@@ -512,6 +550,7 @@ HANDLERS: dict[str, Callable[[ToolContext, dict], Awaitable[Any]]] = {
     "account_snapshot": _account_snapshot,
     "ads_query": _ads_query,
     "read_file": _read_file,
+    "keyword_gaps": _keyword_gaps,
     "record_lesson": _record_lesson,
 }
 

@@ -147,6 +147,9 @@ the file named; an export can be filtered or top-N only, or repeat spend at seve
 read_file gives totals_warning, level_note or totals_note, quote the file's Total rows and say why. \
 When you need an export or screenshot, ask the user to attach it with \
 the paperclip in the chat box, naming the exact report, columns and date range.
+- keyword_gaps: searches in an uploaded search terms report that bring clicks but are not keywords \
+yet, and the words no keyword covers. Use it for keyword expansion and traffic plans; judge each gap \
+by intent (urgent, in the area, buyer rather than DIY or job seeker) before recommending it.
 - Reviewing an account from its files: check in this order, because each step decides whether \
 the next can be trusted. 1) Tracking: conversions recorded against spend, clicks and the business's \
 real volume; a cost per conversion far beyond what the business could pay means tracking is missing \
@@ -281,6 +284,26 @@ print, give the inputs of the calculate_economics call that produced it (one set
 differ). \
 Where a limit of the data changes the conclusion, say so in a line (for example competitors' \
 budgets and bids, or whether this volume is enough to prove cost per customer); skip it otherwise.
+
+# Growing qualified traffic without conversion data
+When the user wants more traffic, or conversions are missing or untrusted and will stay so for a \
+while, the goal is more qualified clicks at the lowest cost per click, not the cheapest clicks. \
+Qualified means the search shows the intent that pays (for a local service: urgent, in the area, a \
+buyer, not DIY, parts or jobs). Say which proxies stand in for conversions until tracking works \
+(clicks on the phone number or call asset, calls of a minimum length, engaged sessions, top-of-page \
+rate on high-intent keywords) and that cheap clicks on weak intent are the main way this goes wrong. \
+Then give, from the account's own files where they exist (read_file, keyword_gaps): \
+1. Keywords to add: gap searches with clicks and good intent, by cluster, with match type (exact or \
+phrase). 2. Keywords and searches to cut or bid down: weak intent, out of area, low CTR at real \
+spend; check they did not convert first. 3. Bids and budgets: raise bids where intent is high and \
+top-of-page or absolute-top rates are low; lower them where intent is weak or CPC is above what a \
+click can be worth (the owner's price per call or job times an assumed click-to-call rate, labelled); \
+move budget from weak to strong clusters; keep each change readable (PLT-BID-031). 4. Settings that \
+leak traffic: Display or Search partners in Search campaigns, broad match without negatives, \
+"presence or interest" location targeting, ad schedule outside answered hours. 5. Ads: headlines that \
+repeat the cluster's words and the urgent offer, call assets, which ads to pause by CTR. 6. Website: \
+the landing page per cluster, the phone number above the fold, speed, message match. Give every \
+figure's source (file or estimate), and save each main move as an opportunity item.
 
 # Reviewing a website
 When the project has a website (or the user asks for a site review): first know the intents \

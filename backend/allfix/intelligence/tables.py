@@ -279,14 +279,20 @@ def _guide(table: Table) -> dict[str, Any]:
 
 
 _WHERE = re.compile(r"^\s*(.+?)\s*(>=|<=|!=|=|>|<)\s*(-?[\d.,]+)\s*$")
+_WHERE_TEXT = re.compile(r"^\s*(.+?)\s*(!=|=)\s*(.+?)\s*$")
 _OPS = {">": float.__gt__, "<": float.__lt__, ">=": float.__ge__, "<=": float.__le__,
         "=": lambda a, b: abs(a - b) < 1e-9, "!=": lambda a, b: abs(a - b) >= 1e-9}
 
 
-def _filters(table: Table, where: list[str]) -> list[tuple[int, Any, float]]:
+def _filters(table: Table, where: list[str]) -> list[tuple[int, Any, Any]]:
     out = []
     for w in where:
         m = _WHERE.match(w)
+        if not m and (t := _WHERE_TEXT.match(w)):
+            # exact text, case-insensitive: 'Added/Excluded = None', 'Campaign type != Display'
+            want, eq = t.group(3).strip().strip("'\"").lower(), t.group(2) == "="
+            out.append((_column(table, t.group(1)), "text", (want, eq)))
+            continue
         if not m:
             raise ValueError(f"cannot read the filter {w!r}; write it like 'Cost > 50' or 'Conversions = 0'")
         v = number(m.group(3))
@@ -305,6 +311,9 @@ def query(table: Table, contains: str | None = None, sort_by: str | None = None,
         needle = contains.lower()
         rows = [r for r in rows if any(needle in c.lower() for c in r)]
     for k, op, v in _filters(table, where or []):
+        if op == "text":
+            rows = [r for r in rows if (r[k].strip().lower() == v[0]) == v[1]]
+            continue
         # "--" is Google Ads' empty cell: no clicks, no conversions
         rows = [r for r in rows if (x := 0.0 if r[k].strip() in EMPTY else number(r[k])) is not None and op(x, v)]
     add = additive_columns(table, rows)
