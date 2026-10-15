@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
-const KEY = "allfix.chatWidth";
-const DEFAULT = 0.42; // share of the row the conversation takes
-const MIN_LEFT = 360; // px
-const MIN_RIGHT = 300; // px
+const KEY = "allfix.dataWidth";
+const DEFAULT = 0.5; // share of the row the stage data takes
+const MIN_LEFT = 300; // px
+const MIN_RIGHT = 360; // px
 
 function saved() {
   try { const v = Number(localStorage.getItem(KEY)); return v > 0 && v < 1 ? v : DEFAULT; } catch { return DEFAULT; }
@@ -11,7 +11,7 @@ function saved() {
 function save(v: number) { try { localStorage.setItem(KEY, String(v)); } catch { /* storage unavailable */ } }
 
 /** Two panes side by side with a divider the user drags to any width. The width is kept per
- * device; double-click the divider to reset it. On narrow screens the panes stack. */
+ * device; double-click the divider to reset it. On narrow screens the panes stack, right pane (the conversation) first. */
 export default function Split({ left, right }: { left: React.ReactNode; right: React.ReactNode }) {
   const row = useRef<HTMLDivElement>(null);
   const [share, setShare] = useState(saved);
@@ -51,8 +51,8 @@ export default function Split({ left, right }: { left: React.ReactNode; right: R
 
   return (
     <div ref={row} className="flex min-h-0 min-w-0 flex-1 max-md:flex-col max-md:gap-3" data-testid="split">
-      <div className="flex min-h-0 min-w-0 shrink-0 max-md:!w-full" style={{ width: `calc(${share * 100}% - 7px)` }}>{left}</div>
-      <div role="separator" aria-orientation="vertical" aria-label="Drag to resize the conversation" tabIndex={0}
+      <div className="flex min-h-0 min-w-0 shrink-0 max-md:order-2 max-md:!w-full" style={{ width: `calc(${share * 100}% - 7px)` }}>{left}</div>
+      <div role="separator" aria-orientation="vertical" aria-label="Drag to resize the panels" tabIndex={0}
         title="Drag to resize · double-click to reset"
         onPointerDown={(e) => { e.preventDefault(); setDragging(true); }}
         onDoubleClick={() => setShare(DEFAULT)}

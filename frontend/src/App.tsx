@@ -252,14 +252,14 @@ export default function App() {
                 onChanged={() => { loadOverview(); api.projects().then(setProjects).catch(() => {}); }} />
             ) : (
             <Split left={
-              <Chat project={project} conversations={conversations} conversation={conversation} turns={turns} busy={busy}
-                draft={draft} setDraft={setDraft} onSend={send} onStop={() => abortRef.current?.abort()}
-                onNewConversation={newConversation} onSelectConversation={selectConversation} />
-            } right={
               <StagePanel project={project} stage={stages.find((s) => s.n === stage)} stages={stages} items={items}
                 onQuote={quote} onStatus={setStatus} onSelectStage={setStage}
                 onChanged={() => { if (project) refreshProject(project.id); }}
                 onAsk={(text) => { setView("chat"); setDraft(text); }} />
+            } right={
+              <Chat project={project} conversations={conversations} conversation={conversation} turns={turns} busy={busy}
+                draft={draft} setDraft={setDraft} onSend={send} onStop={() => abortRef.current?.abort()}
+                onNewConversation={newConversation} onSelectConversation={selectConversation} />
             } />
           )}
         </div>
