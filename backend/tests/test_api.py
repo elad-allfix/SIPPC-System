@@ -148,3 +148,26 @@ def test_lessons_endpoint_lists_project_and_shared():
         client.post(f"/api/conversations/{conv['id']}/chat", json={"message": "go"})
         assert {l["correction"] for l in client.get(f"/api/projects/{p['id']}/lessons").json()} == {"B", "D"}
         assert [l["correction"] for l in client.get(f"/api/projects/{other['id']}/lessons").json()] == ["D"]
+
+
+def test_user_scores_a_due_forecast_without_the_strategist():
+    client, _ = _client([
+        ([tool("t1", "save_item", {"kind": "forecast", "title": "10-20 leads in month 1", "label": "hypothesis",
+                                   "body": "-", "confidence": "low",
+                                   "data": {"review_after": "2000-01-01", "prediction": "10-20", "metric": "leads"}}),
+          tool("t2", "save_item", {"kind": "finding", "title": "Display wastes money", "label": "observed",
+                                   "body": "-", "confidence": "high"})], "tool_use"),
+        ([text("Saved.")], "end_turn"),
+    ])
+    with client:
+        p = client.post("/api/projects", json={"name": "S"}).json()
+        conv = client.post(f"/api/projects/{p['id']}/conversations", json={}).json()
+        client.post(f"/api/conversations/{conv['id']}/chat", json={"message": "go"})
+        items = {i["kind"]: i for i in client.get(f"/api/projects/{p['id']}/items").json()}
+        assert any(n["kind"] == "check" for n in client.get(f"/api/projects/{p['id']}/needs").json()["needs"])
+        r = client.post(f"/api/items/{items['forecast']['id']}/outcome", json={"actual": "14 leads", "verdict": "hit"})
+        assert r.status_code == 200 and r.json()["status"] == "confirmed"
+        assert r.json()["data"]["outcome"]["actual"] == "14 leads" and r.json()["data"]["prediction"] == "10-20"
+        assert not any(n["kind"] == "check" for n in client.get(f"/api/projects/{p['id']}/needs").json()["needs"])
+        assert client.post(f"/api/items/{items['finding']['id']}/outcome", json={"actual": "x", "verdict": "hit"}).status_code == 400
+        assert client.post(f"/api/items/{items['forecast']['id']}/outcome", json={"actual": "x", "verdict": "maybe"}).status_code == 422

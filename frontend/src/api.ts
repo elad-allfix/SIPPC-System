@@ -32,6 +32,8 @@ export const api = {
     req<Item[]>(`/projects/${projectId}/items${stage ? `?stage=${stage}` : ""}`),
   updateItem: (id: string, body: Partial<Item> & { append_note?: string }) =>
     req<Item>(`/items/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  scoreItem: (id: string, body: { actual: string; verdict: string; evidence?: string }) =>
+    req<Item>(`/items/${id}/outcome`, { method: "POST", body: JSON.stringify(body) }),
   conversations: (projectId: string) => req<Conversation[]>(`/projects/${projectId}/conversations`),
   createConversation: (projectId: string, title = "New conversation") =>
     req<Conversation>(`/projects/${projectId}/conversations`, { method: "POST", body: JSON.stringify({ title }) }),

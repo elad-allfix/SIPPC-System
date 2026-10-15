@@ -8,7 +8,39 @@ const today = () => new Date().toISOString().slice(0, 10);
 /** Forecast ledger: what is due, and how past forecasts turned out. No hit rate until there are enough. */
 type F = Item & { data: { review_after?: string; outcome?: { verdict?: string } } };
 
-export default function Ledger({ items, onAsk }: { items: Item[]; onAsk: (text: string) => void }) {
+/** Record what happened to one forecast, in the user's own words, without asking the strategist. */
+function Score({ f, onScored }: { f: F; onScored: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [actual, setActual] = useState("");
+  const [verdict, setVerdict] = useState<string>("hit");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    setSaving(true); setError(null);
+    try { await api.scoreItem(f.id, { actual: actual.trim(), verdict }); setOpen(false); onScored(); }
+    catch (e) { setError(String((e as Error).message ?? e)); }
+    finally { setSaving(false); }
+  };
+  return (
+    <div className="text-muted" data-testid="due-forecast">
+      · {f.title} <span className="text-faint">(after {f.data.review_after})</span>
+      {!open ? <button className="ml-1 text-accent hover:underline" onClick={() => setOpen(true)}>Record what happened</button> : (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <input value={actual} onChange={(e) => setActual(e.target.value)} placeholder="What actually happened, e.g. 14 leads"
+            className="min-w-0 flex-1 rounded-lg border border-line bg-sunken px-2 py-1 text-xs text-fg" data-testid="score-actual" />
+          <select value={verdict} onChange={(e) => setVerdict(e.target.value)} className="rounded-lg border border-line bg-sunken px-2 py-1 text-xs text-fg">
+            {VERDICTS.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+          <button disabled={!actual.trim() || saving} onClick={save} className="rounded-full bg-accent px-3 py-1 text-xs text-accent-fg disabled:opacity-50" data-testid="score-save">Save</button>
+          <button onClick={() => setOpen(false)} className="text-xs text-faint hover:underline">Cancel</button>
+          {error && <div className="w-full text-danger">{error}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Ledger({ items, onAsk, onScored }: { items: Item[]; onAsk: (text: string) => void; onScored: () => void }) {
   const forecasts = (items as F[]).filter((i) => i.kind === "forecast" && i.status !== "superseded" && i.status !== "dropped");
   if (forecasts.length === 0) return null;
   const scored = forecasts.filter((f) => f.data?.outcome?.verdict);
@@ -28,8 +60,8 @@ export default function Ledger({ items, onAsk }: { items: Item[]; onAsk: (text: 
       {due.length > 0 && (
         <div className="space-y-1 border-t border-line pt-2">
           <div className="font-medium text-amber-700 dark:text-amber-300">{due.length} due for review</div>
-          {due.map((f) => <div key={f.id} className="text-muted">· {f.title} <span className="text-faint">(after {f.data.review_after})</span></div>)}
-          <button className="text-accent hover:underline" onClick={() => onAsk("Score the forecasts that are due for review.")}>Ask the strategist to score them</button>
+          {due.map((f) => <Score key={f.id} f={f} onScored={onScored} />)}
+          <button className="text-accent hover:underline" onClick={() => onAsk("Score the forecasts that are due for review.")}>Or ask the strategist to score them from account data</button>
         </div>
       )}
     </div>

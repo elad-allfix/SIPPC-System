@@ -244,6 +244,7 @@ export default function App() {
                 onNewConversation={newConversation} onSelectConversation={selectConversation} />
               <StagePanel project={project} stage={stages.find((s) => s.n === stage)} stages={stages} items={items}
                 onQuote={quote} onStatus={setStatus} onSelectStage={setStage}
+                onChanged={() => { if (project) refreshProject(project.id); }}
                 onAsk={(text) => { setView("chat"); setDraft(text); }} />
             </>
           )}

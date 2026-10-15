@@ -15,6 +15,7 @@ interface Props {
   onStatus: (item: Item, status: string) => void;
   onSelectStage: (n: number) => void;
   onAsk: (text: string) => void;
+  onChanged: () => void;
 }
 
 function ItemCard({ item, onQuote, onStatus }: { item: Item; onQuote: (i: Item) => void; onStatus: (i: Item, s: string) => void }) {
@@ -146,7 +147,7 @@ export default function StagePanel(p: Props) {
   } else if (s.n === 6) {
     body = (
       <div className="space-y-5">
-        <Ledger items={p.items} onAsk={p.onAsk} />
+        <Ledger items={p.items} onAsk={p.onAsk} onScored={p.onChanged} />
         <Lessons projectId={pr.id} updatedAt={pr.updated_at} />
         {p.items.length === 0 ? <Empty>Nothing saved here yet. Decisions, forecasts and experiments land here.</Empty>
           : <Grouped items={p.items} {...actions} />}

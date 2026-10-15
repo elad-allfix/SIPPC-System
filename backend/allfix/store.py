@@ -249,6 +249,23 @@ async def create_item(project_id: str, data: dict, conversation_id: str | None =
     return _clean(row)
 
 
+VERDICT_STATUS = {"hit": "confirmed", "miss": "refuted", "partial": "done", "unscorable": "done"}
+
+
+async def score_item(item_id: str, actual: str, verdict: str, evidence: str = "") -> dict:
+    """Record what happened to a forecast or experiment, as the user saw it, and close it."""
+    if verdict not in VERDICT_STATUS:
+        raise ValueError(f"verdict must be one of {tuple(VERDICT_STATUS)}")
+    cur = await db.fetch_one("select kind from items where id = %s", (item_id,))
+    if cur is None:
+        raise KeyError("item not found")
+    if cur["kind"] not in ("forecast", "experiment"):
+        raise ValueError("only forecasts and experiments are scored")
+    outcome = {"actual": actual, "verdict": verdict, "evidence": evidence or "entered by the user",
+               "scored_at": date.today().isoformat(), "scored_by": "user"}
+    return await update_item(item_id, {"status": VERDICT_STATUS[verdict], "data": {"outcome": outcome}})
+
+
 async def update_item(item_id: str, data: dict) -> dict:
     allowed = {"title", "body", "label", "confidence", "status", "stage", "superseded_by"}
     fields = {k: v for k, v in data.items() if k in allowed and v is not None}
@@ -280,6 +297,8 @@ async def update_item(item_id: str, data: dict) -> dict:
         f"update items set {', '.join(sets)}, updated_at = now() where id = %(id)s returning *", params)
     if row is None:
         raise KeyError("item not found")
+    # The project changed too: the interface reloads a stage's items when the project's timestamp moves.
+    await db.execute("update projects set updated_at = now() where id = %s", (row["project_id"],))
     return _clean(row)
 
 

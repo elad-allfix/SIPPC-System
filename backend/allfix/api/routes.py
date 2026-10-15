@@ -57,6 +57,12 @@ class ItemPatch(BaseModel):
     append_note: str | None = None
 
 
+class OutcomeIn(BaseModel):
+    actual: str = Field(min_length=1, max_length=2000)
+    verdict: Literal["hit", "partial", "miss", "unscorable"]
+    evidence: str = Field(default="", max_length=2000)
+
+
 class ConversationIn(BaseModel):
     title: str = "New conversation"
 
@@ -193,6 +199,16 @@ async def list_items(project_id: str, stage: int | None = None, kind: str | None
 async def patch_item(item_id: str, body: ItemPatch) -> dict:
     try:
         return await store.update_item(item_id, body.model_dump(exclude_none=True))
+    except KeyError:
+        raise _404("item")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/items/{item_id}/outcome")
+async def score_item(item_id: str, body: OutcomeIn) -> dict:
+    try:
+        return await store.score_item(item_id, body.actual, body.verdict, body.evidence)
     except KeyError:
         raise _404("item")
     except ValueError as e:
