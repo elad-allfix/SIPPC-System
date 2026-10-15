@@ -3,6 +3,7 @@ import { api } from "../api";
 import type { Project, ProjectCard } from "../types";
 import { DeleteProject } from "./DeleteProject";
 import { Orbits } from "./Ignition";
+import { PlanMeter, planDone, useGrowthPlan } from "./GrowthPlan";
 
 type Finding = ProjectCard["findings"][number];
 type Missing = ProjectCard["missing"][number];
@@ -159,6 +160,23 @@ function Card({ c, n, onOpen, onEdit, onTrash }: {
         <Head c={c} onEdit={onEdit} onTrash={onTrash} />
       </div>
       <Panels c={c} />
+      <PlanLine projectId={c.id} version={c.last_activity ?? undefined} />
+    </div>
+  );
+}
+
+/** "Growth plan: 4 of 6 parts" with one lit segment per part that has moves. */
+function PlanLine({ projectId, version }: { projectId: string; version?: string }) {
+  const plan = useGrowthPlan(projectId, version);
+  if (!plan) return null;
+  return (
+    <div className="-mt-1 text-xs text-faint" data-testid="card-plan" title={plan.missing.length
+      ? `Still missing: ${plan.parts.filter((p) => !p.items.length).map((p) => p.title).join("; ")}` : "All six parts are in"}>
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="font-mono text-[10.5px] uppercase tracking-[0.18em] text-accent">Growth plan</span>
+        <span className="tabular-nums">{plan.complete ? "complete" : `${planDone(plan)} of ${plan.parts.length} parts`}</span>
+      </div>
+      <PlanMeter plan={plan} className="text-fg" />
     </div>
   );
 }

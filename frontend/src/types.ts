@@ -188,3 +188,6 @@ export type ViewBlock = BlockBase & (
 );
 export interface StageView { verdict: string; kpis: ViewKpi[]; blocks: ViewBlock[] }
 export interface StageViewState { view: StageView | null; fresh: boolean; empty: boolean; generating: boolean; error: string | null; elapsed?: number }
+
+export interface GrowthPlanPart { key: string; title: string; items: Item[] }
+export interface GrowthPlan { parts: GrowthPlanPart[]; missing: string[]; complete: boolean; updated_at: string | null }

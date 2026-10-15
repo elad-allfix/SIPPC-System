@@ -31,6 +31,9 @@ const PATHS: Record<string, string> = {
   bolt: "M13 2L4 14h7l-1 8 9-12h-7z",
   tag: "M3 3h8l10 10-8 8L3 11zM7.5 7.5h.01",
   pause: "M9 5v14M15 5v14",
+  plus: "M12 5v14M5 12h14",
+  minus: "M5 12h14",
+  sliders: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4",
   scale: "M12 3v18M7 21h10M4 7h16M4 7l-2 6a3 3 0 006 0zM20 7l-2 6a3 3 0 006 0z",
 };
 

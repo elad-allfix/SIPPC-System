@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Icon, { STAGE_ICON } from "./Icon";
+import GrowthPlanView, { useGrowthPlan } from "./GrowthPlan";
 import { StageViewBody, StageViewLoading, useStageView } from "./StageView";
 import type { Item, Project, Stage } from "../types";
 import Connectivity from "./Connectivity";
@@ -99,6 +100,7 @@ export default function StagePanel(p: Props) {
   const viewable = !!s && VIEW_STAGES.has(s.n);
   const { state, retry } = useStageView(pr.id, s?.n ?? 0, `${pr.updated_at}|${p.items.length}`, viewable);
   const [showAll, setShowAll] = useState<boolean | null>(null);
+  const plan = useGrowthPlan(pr.id, pr.updated_at, s?.n === 5);
   if (!s) return null;
   const actions = { onQuote: p.onQuote, onStatus: p.onStatus };
   const facts = pr.facts ?? [];
@@ -186,6 +188,7 @@ export default function StagePanel(p: Props) {
         {state?.generating && hasView && <span className="flex items-center gap-1.5 text-[11px] text-faint"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />Updating</span>}
       </div>
       <div className="flex-1 overflow-auto px-5 pb-5 scroll-thin" data-testid="stage-panel">
+        {s.n === 5 && plan && <div className="mb-5"><GrowthPlanView plan={plan} onQuote={p.onQuote} onAsk={p.onAsk} /></div>}
         {!summarised ? <div className="space-y-5">{body}{s.n === 6 && learning}</div> : (
           <div className="space-y-5">
             {hasView ? <StageViewBody view={view!} items={p.items} onQuote={p.onQuote} />
