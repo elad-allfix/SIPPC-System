@@ -77,6 +77,7 @@ export interface Turn {
   model?: string | null;
   mode?: string | null;
   error?: string;
+  notice?: string; // e.g. Deep fell back to the standard model
   streaming?: boolean;
   segStart?: number; // where the text written since the last tool call begins
 }

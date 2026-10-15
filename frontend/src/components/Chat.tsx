@@ -94,6 +94,7 @@ function AssistantTurn({ t }: { t: Turn }) {
       {t.streaming && acts.length > 0 && !open && (
         <div className="space-y-1">{acts.slice(-3).map((a) => <ActivityLine key={a.id} a={a} />)}</div>
       )}
+      {t.notice && <div className="rounded-xl border border-line bg-panel px-3 py-2 text-xs text-faint" data-testid="turn-notice">{t.notice}</div>}
       {t.text ? <Markdown>{t.text}</Markdown> : t.streaming && !t.error ? (
         <div className="flex items-center gap-2 text-sm text-faint"><span className="h-2 w-2 animate-pulse rounded-full bg-accent" />Working…</div>
       ) : null}

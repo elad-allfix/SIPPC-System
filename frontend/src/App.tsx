@@ -170,6 +170,9 @@ export default function App() {
           case "sources":
             patchLast((t) => ({ ...t, sources: ev.sources }));
             break;
+          case "notice":
+            patchLast((t) => ({ ...t, notice: ev.message }));
+            break;
           case "error":
             patchLast((t) => ({ ...t, error: ev.message }));
             break;

@@ -17,6 +17,7 @@ its own thread and loop. Database work is sent back to the main loop.
 from __future__ import annotations
 
 import asyncio
+import re
 import json
 import logging
 import sys
@@ -301,6 +302,24 @@ async def _agent_turn(strategist: SubscriptionStrategist, turn: _Turn, ctx: Tool
                       conversation_id: str, prompt: str, resume: str | None, brief: str,
                       user_text: str, prior_rows: list) -> None:
     try:
+        await _agent_turn_once(strategist, turn, ctx, spec, conversation_id, prompt, resume, brief, user_text)
+    except _ModelLimit:
+        # The plan's allowance for the Deep model is used up: answer with the standard model and say so.
+        from .models import spec_for
+        standard = spec_for("standard")
+        turn.emit({"type": "notice", "message": DEEP_LIMIT_NOTE})
+        turn.emit({"type": "turn_start", "model": standard.model, "mode": standard.mode, "backend": "subscription"})
+        await _agent_turn_once(strategist, turn, ctx, standard, conversation_id, prompt, resume, brief, user_text)
+
+
+DEEP_LIMIT_NOTE = ("Deep mode's model has reached its limit on your Claude plan, so this answer uses the "
+                   "standard model. Deep works again when the plan's limit resets.")
+
+
+async def _agent_turn_once(strategist: SubscriptionStrategist, turn: _Turn, ctx: ToolContext, spec,
+                           conversation_id: str, prompt: str, resume: str | None, brief: str,
+                           user_text: str) -> None:
+    try:
         await _agent_session(strategist, turn, ctx, spec, conversation_id, prompt, resume)
     except _ResumeFailed:
         # The stored session is gone or unreadable: start a new one seeded with a recap.
@@ -313,6 +332,15 @@ async def _agent_turn(strategist: SubscriptionStrategist, turn: _Turn, ctx: Tool
 
 class _ResumeFailed(Exception):
     pass
+
+
+class _ModelLimit(Exception):
+    """The Deep model refused the turn because the plan's allowance for it is used up."""
+
+
+def is_model_limit(model: str | None, text: str) -> bool:
+    """Claude Code answers a used-up model allowance with a synthetic message, not an API error."""
+    return model == "<synthetic>" and bool(re.search(r"reached your .{0,40}limit", text, re.I))
 
 
 async def _agent_session(strategist: SubscriptionStrategist, turn: _Turn, ctx: ToolContext, spec,
@@ -369,11 +397,16 @@ async def _agent_session(strategist: SubscriptionStrategist, turn: _Turn, ctx: T
                     elif isinstance(msg, RateLimitEvent):
                         info = msg.rate_limit_info
                         STATUS["rate_limit"] = getattr(info, "raw", None) or {"status": info.status}
-                        if info.status == "rejected":
+                        # In Deep mode a refusal before any output may be the Deep model's own limit,
+                        # which falls back to the standard model; the synthetic message decides.
+                        if info.status == "rejected" and (spec.mode != "deep" or got_output):
                             turn.emit({"type": "error", "message": _limit_message(info)})
                     elif isinstance(msg, AssistantMessage):
                         if msg.parent_tool_use_id:
                             continue
+                        said = " ".join(b.text for b in msg.content if isinstance(b, TextBlock))
+                        if spec.mode == "deep" and not got_output and is_model_limit(msg.model, said):
+                            raise _ModelLimit()
                         blocks = []
                         for b in msg.content:
                             if isinstance(b, TextBlock) and b.text:
@@ -418,7 +451,7 @@ async def _agent_session(strategist: SubscriptionStrategist, turn: _Turn, ctx: T
                             turn.emit({"type": "error", "message": _result_error(msg)})
             finally:
                 watcher.cancel()
-    except _ResumeFailed:
+    except (_ResumeFailed, _ModelLimit):
         raise
     except Exception as e:
         if resume and not got_output and not turn.stop.is_set():

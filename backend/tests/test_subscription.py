@@ -68,3 +68,28 @@ async def test_history_seed_is_plain_text(database):
     await store.append_message(c["id"], "assistant", [{"type": "text", "text": "About $3 [estimate]."}])
     seed = await sub.history_seed(c["id"])
     assert seed == "User: What CPC?\n\nStrategist: About $3 [estimate]."
+
+
+def test_model_limit_is_recognised_only_from_the_synthetic_message():
+    text = "You've reached your Fable limit. Switch to another model, or manage usage credits to continue."
+    assert sub.is_model_limit("<synthetic>", text)
+    assert not sub.is_model_limit("claude-opus-5-5", text)  # the model talking about limits is not a refusal
+    assert not sub.is_model_limit("<synthetic>", "API Error: overloaded")
+
+
+async def test_deep_limit_falls_back_to_the_standard_model(monkeypatch):
+    seen = []
+
+    async def fake_session(strategist, turn, ctx, spec, conversation_id, prompt, resume):
+        seen.append(spec.mode)
+        if spec.mode == "deep":
+            raise sub._ModelLimit()
+
+    monkeypatch.setattr(sub, "_agent_session", fake_session)
+    turn = sub._Turn(main=asyncio.get_running_loop(), queue=asyncio.Queue())
+    await sub._agent_turn(sub.SubscriptionStrategist(), turn, ToolContext("p", "c"), spec_for("deep"),
+                          "c", "prompt", None, "brief", "hi", [])
+    await asyncio.sleep(0)
+    events = [turn.queue.get_nowait() for _ in range(turn.queue.qsize())]
+    assert seen == ["deep", "standard"]
+    assert events[0]["type"] == "notice" and events[1] == {**events[1], "type": "turn_start", "mode": "standard"}
